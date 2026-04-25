@@ -12,13 +12,15 @@ const tabConfig = [
   { label: 'For Approval', value: 'for_approval' },
   { label: 'For Payment', value: 'for_payment' },
   { label: 'History', value: 'history' },
+  { label: 'Archived', value: 'archived' },
 ]
 
 const tabStatuses: Record<string, Bill['status'][]> = {
   drafts: ['draft'],
   for_approval: ['pending_approval'],
   for_payment: ['approved', 'scheduled'],
-  history: ['paid', 'rejected', 'archived'],
+  history: ['paid', 'rejected'],
+  archived: ['archived'],
 }
 
 export default function BillsPage() {

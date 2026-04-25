@@ -9,6 +9,7 @@ export const translations: Record<Locale, TranslationDict> = {
     'topbar.account.settings': 'Account settings',
     'topbar.language.es': 'Spanish',
     'topbar.language.en': 'English',
+    'topbar.menu.open': 'Open navigation menu',
 
     'nav.home': 'Home',
     'nav.bills': 'Bills',
@@ -32,6 +33,7 @@ export const translations: Record<Locale, TranslationDict> = {
     'topbar.account.settings': 'Configuración de cuenta',
     'topbar.language.es': 'Español',
     'topbar.language.en': 'Inglés',
+    'topbar.menu.open': 'Abrir menú de navegación',
 
     'nav.home': 'Inicio',
     'nav.bills': 'Facturas',

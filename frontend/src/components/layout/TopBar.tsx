@@ -1,12 +1,16 @@
 import { Link } from 'react-router-dom'
-import { Moon, Sun } from 'lucide-react'
+import { Menu, Moon, Sun } from 'lucide-react'
 import Button from '../ui/Button'
 import { useAppStore } from '../../store/useAppStore'
 import { useI18n } from '../../i18n/useI18n'
 
-type TopBarProps = Readonly<{ title: string; showNewBill: boolean }>
+type TopBarProps = Readonly<{
+  title: string
+  showNewBill: boolean
+  onOpenMobileMenu?: () => void
+}>
 
-export default function TopBar({ title, showNewBill }: TopBarProps) {
+export default function TopBar({ title, showNewBill, onOpenMobileMenu }: TopBarProps) {
   const openCreateBillModal = useAppStore((state) => state.openCreateBillModal)
   const theme = useAppStore((state) => state.theme)
   const toggleTheme = useAppStore((state) => state.toggleTheme)
@@ -21,13 +25,27 @@ export default function TopBar({ title, showNewBill }: TopBarProps) {
     .toUpperCase()
 
   return (
-    <header className="mb-5 flex items-center justify-between">
-      <div>
-        <h2 className="text-2xl font-semibold text-slate-950">{title}</h2>
-        <p className="mt-0.5 text-sm text-slate-500">{t('topbar.subtitle')}</p>
+    <header className="mb-4 flex items-start justify-between gap-3 md:mb-5">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          {onOpenMobileMenu && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onOpenMobileMenu}
+              className="flex h-9 w-9 items-center justify-center rounded-full p-0 md:hidden"
+              aria-label={t('topbar.menu.open')}
+              title={t('topbar.menu.open')}
+            >
+              <Menu size={18} />
+            </Button>
+          )}
+          <h2 className="truncate text-xl font-semibold text-slate-950 md:text-2xl">{title}</h2>
+        </div>
+        <p className="mt-0.5 hidden text-sm text-slate-500 md:block">{t('topbar.subtitle')}</p>
       </div>
-      <div className="flex items-center gap-3">
-        <div className="flex items-center rounded-full border border-[var(--color-border)] bg-white p-0.5">
+      <div className="flex shrink-0 items-center gap-2 md:gap-3">
+        <div className="hidden items-center rounded-full border border-[var(--color-border)] bg-white p-0.5 sm:flex">
           <button
             type="button"
             onClick={() => setLocale('es')}

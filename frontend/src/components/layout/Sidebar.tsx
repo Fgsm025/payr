@@ -22,7 +22,11 @@ const navItems = [
   { to: '/settings', labelKey: 'nav.settings', icon: Settings },
 ]
 
-export default function Sidebar() {
+type SidebarProps = Readonly<{
+  onNavigate?: () => void
+}>
+
+export default function Sidebar({ onNavigate }: SidebarProps) {
   const logout = useAppStore((state) => state.logout)
   const legalEntities = useAppStore((state) => state.legalEntities)
   const selectedEntityId = useAppStore((state) => state.selectedEntityId)
@@ -33,6 +37,7 @@ export default function Sidebar() {
   const onLogout = () => {
     logout()
     navigate('/login', { replace: true })
+    onNavigate?.()
   }
 
   return (
@@ -70,6 +75,7 @@ export default function Sidebar() {
             <NavLink
               key={to}
               to={to}
+              onClick={onNavigate}
               className={({ isActive }) =>
                 `sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                   isActive
