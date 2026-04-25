@@ -10,9 +10,10 @@ type BillsTableProps = {
   activeTab: string
   onAction: (billId: string, action: 'submit' | 'approve' | 'reject' | 'pay' | 'archive') => void
   onView: (billId: string) => void
+  onPayRequest: (bill: BillRow) => void
 }
 
-export default function BillsTable({ bills, activeTab, onAction, onView }: BillsTableProps) {
+export default function BillsTable({ bills, activeTab, onAction, onView, onPayRequest }: Readonly<BillsTableProps>) {
   const renderActions = (row: BillRow) => {
     if (activeTab === 'drafts') {
       return (
@@ -35,7 +36,7 @@ export default function BillsTable({ bills, activeTab, onAction, onView }: Bills
     if (activeTab === 'for_payment') {
       return (
         <div className="flex items-center gap-2">
-          <Button variant="success" size="sm" onClick={() => onAction(row.id, 'pay')}>Mark as Paid</Button>
+          <Button variant="success" size="sm" onClick={() => onPayRequest(row)}>Pay</Button>
           <Button variant="secondary" size="sm" onClick={() => onView(row.id)}>View</Button>
         </div>
       )

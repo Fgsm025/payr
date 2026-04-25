@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Pencil, Trash2 } from 'lucide-react'
+import { CreditCard, Pencil, Plus, Trash2 } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import { useAppStore } from '../../store/useAppStore'
 
@@ -16,6 +16,8 @@ export default function SettingsPage() {
     (state) => state.setDefaultLegalEntity,
   )
   const deleteLegalEntity = useAppStore((state) => state.deleteLegalEntity)
+  const paymentMethods = useAppStore((state) => state.paymentMethods)
+  const addMockPaymentMethod = useAppStore((state) => state.addMockPaymentMethod)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [profileName, setProfileName] = useState(authUser?.name ?? 'Admin User')
   const [profileEmail, setProfileEmail] = useState(
@@ -148,6 +150,41 @@ export default function SettingsPage() {
             </div>
           </div>
         )}
+      </div>
+
+      <div className='rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-sm'>
+        <div className='mb-4 flex items-center justify-between gap-3'>
+          <div>
+            <h3 className='text-lg font-semibold text-slate-900'>Payment Methods</h3>
+            <p className='mt-1 text-sm text-slate-500'>Cards used to fund outgoing bill payments.</p>
+          </div>
+          <Button onClick={addMockPaymentMethod} className='flex items-center gap-1.5'>
+            <Plus size={14} /> Add Card
+          </Button>
+        </div>
+
+        <div className='grid gap-3 md:grid-cols-2'>
+          {paymentMethods.map((method) => (
+            <div
+              key={method.id}
+              className='rounded-xl border border-[var(--color-border)] bg-slate-50 p-4'
+            >
+              <div className='flex items-start justify-between gap-2'>
+                <div className='flex items-center gap-2'>
+                  <CreditCard size={16} className='text-slate-600' />
+                  <p className='text-sm font-semibold uppercase text-slate-800'>
+                    {method.brand === 'visa' ? 'VISA' : 'MASTERCARD'}
+                  </p>
+                </div>
+                <span className='rounded-full bg-white px-2 py-0.5 text-xs font-medium text-slate-600'>
+                  **** {method.last4}
+                </span>
+              </div>
+              <p className='mt-3 text-sm text-slate-700'>{method.holderName}</p>
+              <p className='text-xs text-slate-500'>Expires {method.expiry}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className='rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-sm'>

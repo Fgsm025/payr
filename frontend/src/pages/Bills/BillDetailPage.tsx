@@ -46,6 +46,29 @@ export default function BillDetailPage() {
     ),
   } as const
 
+  const timeline = (() => {
+    const entries = bill.history?.length
+      ? [...bill.history]
+      : [{ status: 'draft' as BillStatus, date: bill.invoiceDate }]
+
+    const hasDraft = entries.some((entry) => entry.status === 'draft')
+    if (!hasDraft) {
+      entries.unshift({ status: 'draft', date: bill.invoiceDate })
+    }
+
+    const hasCurrentStatus = entries.some((entry) => entry.status === bill.status)
+    if (!hasCurrentStatus) {
+      const fallbackDate = bill.status === 'paid' && bill.paidDate ? bill.paidDate : bill.dueDate
+      entries.push({
+        status: bill.status,
+        date: fallbackDate,
+        comment: 'Inferred from current status',
+      })
+    }
+
+    return entries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  })()
+
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6">
@@ -74,7 +97,7 @@ export default function BillDetailPage() {
       <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6">
         <h4 className="mb-4 text-lg font-semibold text-slate-900">Status Timeline</h4>
         <div className="space-y-3">
-          {(bill.history ?? [{ status: 'draft', date: bill.invoiceDate }]).map((entry, index) => (
+          {timeline.map((entry, index) => (
             <div key={`${entry.status}-${index}`} className="flex gap-3">
               <div className="mt-1 h-2.5 w-2.5 rounded-full bg-[var(--color-primary)]" />
               <div>

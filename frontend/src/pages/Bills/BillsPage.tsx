@@ -6,6 +6,7 @@ import Button from '../../components/ui/Button'
 import BillFilters from './BillFilters'
 import BillsTable from './BillsTable'
 import CreateBillModal from './CreateBillModal'
+import ConfirmPaymentModal from './ConfirmPaymentModal'
 
 const tabConfig = [
   { label: 'Drafts', value: 'drafts' },
@@ -26,6 +27,7 @@ const tabStatuses: Record<string, Bill['status'][]> = {
 export default function BillsPage() {
   const bills = useAppStore((state) => state.bills)
   const vendors = useAppStore((state) => state.vendors)
+  const paymentMethods = useAppStore((state) => state.paymentMethods)
   const transitionBill = useAppStore((state) => state.transitionBill)
   const isCreateBillModalOpen = useAppStore((state) => state.isCreateBillModalOpen)
   const openCreateBillModal = useAppStore((state) => state.openCreateBillModal)
@@ -33,6 +35,7 @@ export default function BillsPage() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('drafts')
   const [filters, setFilters] = useState({ search: '', vendorFilter: 'all', dateFrom: '', dateTo: '' })
+  const [payingBill, setPayingBill] = useState<{ id: string; amount: number; dueDate: string } | null>(null)
 
   const vendorById = useMemo(
     () => Object.fromEntries(vendors.map((vendor) => [vendor.id, vendor])),
@@ -63,6 +66,12 @@ export default function BillsPage() {
     setFilters((prev) => ({ ...prev, [key]: value }))
   }
 
+  const onConfirmPayment = async ({ paymentMethodId, scheduledDate }: { paymentMethodId: string; scheduledDate: string }) => {
+    if (!payingBill) return
+    await new Promise((resolve) => globalThis.setTimeout(resolve, 1000))
+    transitionBill(payingBill.id, 'pay', `Paid on ${scheduledDate} via ${paymentMethodId}`)
+  }
+
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] pb-3">
@@ -86,11 +95,20 @@ export default function BillsPage() {
         activeTab={activeTab}
         onAction={(billId, action) => transitionBill(billId, action)}
         onView={(billId) => navigate(`/bills/${billId}`)}
+        onPayRequest={(bill) => setPayingBill({ id: bill.id, amount: bill.amount, dueDate: bill.dueDate })}
       />
       <CreateBillModal
         isOpen={isCreateBillModalOpen}
         onClose={closeCreateBillModal}
         onCreated={() => setActiveTab('drafts')}
+      />
+      <ConfirmPaymentModal
+        isOpen={Boolean(payingBill)}
+        amount={payingBill?.amount ?? 0}
+        dueDate={payingBill?.dueDate ?? new Date().toISOString().slice(0, 10)}
+        paymentMethods={paymentMethods}
+        onClose={() => setPayingBill(null)}
+        onConfirm={onConfirmPayment}
       />
     </div>
   )

@@ -21,6 +21,14 @@ type LegalEntity = {
   isDefault: boolean
 }
 
+type PaymentMethod = {
+  id: string
+  brand: 'visa' | 'mastercard'
+  last4: string
+  holderName: string
+  expiry: string
+}
+
 type AppState = {
   vendors: Vendor[]
   addVendor: (input: { name: string; email: string; paymentTerms: number }) => void
@@ -46,6 +54,9 @@ type AppState = {
   addLegalEntity: (input: { name: string; taxId: string; country: string; baseCurrency: string }) => void
   setDefaultLegalEntity: (id: string) => void
   deleteLegalEntity: (id: string) => void
+
+  paymentMethods: PaymentMethod[]
+  addMockPaymentMethod: () => void
 
   theme: 'light' | 'dark'
   toggleTheme: () => void
@@ -243,6 +254,40 @@ export const useAppStore = create<AppState>()(
           }
         }),
 
+      paymentMethods: [
+        {
+          id: 'pm-visa-4242',
+          brand: 'visa',
+          last4: '4242',
+          holderName: 'Admin User',
+          expiry: '12/29',
+        },
+        {
+          id: 'pm-mc-5454',
+          brand: 'mastercard',
+          last4: '5454',
+          holderName: 'Admin User',
+          expiry: '08/30',
+        },
+      ],
+      addMockPaymentMethod: () =>
+        set((state) => {
+          const randomLast4 = String(Math.floor(1000 + Math.random() * 9000))
+          const brand: 'visa' | 'mastercard' = Math.random() > 0.5 ? 'visa' : 'mastercard'
+          return {
+            paymentMethods: [
+              ...state.paymentMethods,
+              {
+                id: `pm-${brand}-${Date.now()}`,
+                brand,
+                last4: randomLast4,
+                holderName: state.authUser?.name ?? 'Admin User',
+                expiry: '10/31',
+              },
+            ],
+          }
+        }),
+
       theme: 'light',
       toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
       locale: 'en',
@@ -321,6 +366,7 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         selectedEntityId: state.selectedEntityId,
         legalEntities: state.legalEntities,
+        paymentMethods: state.paymentMethods,
         theme: state.theme,
         locale: state.locale,
         authToken: state.authToken,
