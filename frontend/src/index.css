@@ -1,0 +1,157 @@
+@import 'tailwindcss';
+
+:root {
+  --color-bg: #eef2f7;
+  --color-surface: #ffffff;
+  --color-page: #fbfcfe;
+  --color-sidebar: #f8fafc;
+  --color-sidebar-text: #64748b;
+  --color-sidebar-active: #0f172a;
+  --color-primary: #22c1e8;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-draft: #6b7280;
+  --color-border: #e7edf3;
+}
+
+:root[data-theme='dark'] {
+  --color-bg: #000000;
+  --color-surface: #111827;
+  --color-page: #111827;
+  --color-sidebar: #111827;
+  --color-sidebar-text: #94a3b8;
+  --color-sidebar-active: #f8fafc;
+  --color-primary: #38bdf8;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+  --color-draft: #9ca3af;
+  --color-border: #1f2937;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: #111827;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    sans-serif;
+  transition: background 4s ease;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.app-shell,
+.dashboard-surface,
+.sidebar-panel,
+.bg-white,
+.bg-slate-50,
+.sidebar-link,
+.sidebar-link-active,
+input,
+select,
+textarea,
+button {
+  transition:
+    background-color 1s ease,
+    color 1s ease,
+    border-color 1s ease,
+    box-shadow 1s ease,
+    background 1s ease;
+}
+
+[data-theme='dark'] body {
+  color: #e2e8f0;
+  background: #000000;
+}
+
+[data-theme='dark'] .bg-white {
+  background-color: #1f2937 !important;
+}
+
+[data-theme='dark'] .bg-slate-50 {
+  background-color: #263446 !important;
+}
+
+[data-theme='dark'] .hover\:bg-slate-50:hover {
+  background-color: #263446 !important;
+}
+
+[data-theme='dark'] .text-slate-950,
+[data-theme='dark'] .text-slate-900,
+[data-theme='dark'] .text-slate-800 {
+  color: #f8fafc !important;
+}
+
+[data-theme='dark'] .text-slate-700,
+[data-theme='dark'] .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+[data-theme='dark'] .text-slate-500,
+[data-theme='dark'] .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+[data-theme='dark'] .border-\[var\(--color-border\)\],
+[data-theme='dark'] .border-slate-200 {
+  border-color: #334155 !important;
+}
+
+[data-theme='dark'] input,
+[data-theme='dark'] select,
+[data-theme='dark'] textarea {
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+
+[data-theme='dark'] .sidebar-link-active {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+
+[data-theme='dark'] .sidebar-link:hover {
+  background-color: #182234 !important;
+}
+
+[data-theme='dark'] .hero-card {
+  background: linear-gradient(
+    135deg,
+    #1f2937 0%,
+    #172033 60%,
+    #0f172a 100%
+  ) !important;
+}
+
+[data-theme='dark'] .paid-month-card {
+  background: linear-gradient(135deg, #1e293b 0%, #172033 100%) !important;
+}
+
+[data-theme='dark'] .dashboard-surface {
+  background: #111827 !important;
+}
+
+[data-theme='dark'] .app-shell {
+  background: #111827 !important;
+}
+
+[data-theme='dark'] .sidebar-panel {
+  background: linear-gradient(
+    180deg,
+    rgba(20, 60, 86, 0.95) 0%,
+    rgba(12, 27, 44, 0.95) 100%
+  ) !important;
+  border-right-color: transparent !important;
+  border: 1px solid rgba(56, 189, 248, 0.18) !important;
+  box-shadow: 0 12px 28px rgba(2, 8, 23, 0.35);
+  backdrop-filter: blur(4px);
+}
