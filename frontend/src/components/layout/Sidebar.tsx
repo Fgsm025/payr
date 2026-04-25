@@ -89,13 +89,13 @@ export default function Sidebar() {
         <div className='space-y-1 text-sm text-[var(--color-sidebar-text)]'>
           <Button
             variant='ghost'
-            className='flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left'
+            className='sidebar-footer-btn flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left'
           >
             <CircleHelp size={15} /> {t('nav.help')}
           </Button>
           <Button
             variant='ghost'
-            className='flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left'
+            className='sidebar-footer-btn flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left'
           >
             <Shield size={15} /> {t('nav.privacy')}
           </Button>

@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import TabBar from '../../components/ui/TabBar'
 import type { Bill } from '../../data/mockData'
 import { useAppStore } from '../../store/useAppStore'
 import Button from '../../components/ui/Button'
@@ -64,10 +63,21 @@ export default function BillsPage() {
 
   return (
     <div>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] pb-3">
+        <div className="flex flex-wrap gap-2">
+          {tabConfig.map((tab) => (
+            <Button
+              key={tab.value}
+              onClick={() => setActiveTab(tab.value)}
+              variant={activeTab === tab.value ? 'primary' : 'secondary'}
+              className={activeTab === tab.value ? 'font-medium' : 'font-medium text-slate-600'}
+            >
+              {tab.label}
+            </Button>
+          ))}
+        </div>
         <Button onClick={openCreateBillModal}>New Bill</Button>
       </div>
-      <TabBar tabs={tabConfig} activeTab={activeTab} onChange={setActiveTab} />
       <BillFilters {...filters} vendors={vendors} onChange={onFilterChange} />
       <BillsTable
         bills={filtered}

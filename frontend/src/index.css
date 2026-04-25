@@ -123,6 +123,11 @@ button {
   background-color: #182234 !important;
 }
 
+[data-theme='dark'] .sidebar-footer-btn:hover {
+  background-color: #182234 !important;
+  color: #e2e8f0 !important;
+}
+
 [data-theme='dark'] .hero-card {
   background: linear-gradient(
     135deg,

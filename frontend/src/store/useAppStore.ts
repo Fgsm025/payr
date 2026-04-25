@@ -23,6 +23,9 @@ type LegalEntity = {
 
 type AppState = {
   vendors: Vendor[]
+  addVendor: (input: { name: string; email: string; paymentTerms: number }) => void
+  updateVendor: (vendorId: string, input: { name: string; email: string; paymentTerms: number }) => void
+  deleteVendor: (vendorId: string) => void
   bills: Bill[]
   addBill: (input: Omit<Bill, 'id' | 'status' | 'history'>) => void
   addBillFromApi: (input: {
@@ -83,6 +86,33 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       vendors: initialVendors,
+      addVendor: (input) =>
+        set((state) => {
+          const vendor: Vendor = {
+            id: `ven-${Date.now()}`,
+            name: input.name.trim(),
+            email: input.email.trim(),
+            paymentTerms: input.paymentTerms,
+          }
+          return { vendors: [vendor, ...state.vendors] }
+        }),
+      updateVendor: (vendorId, input) =>
+        set((state) => ({
+          vendors: state.vendors.map((vendor) =>
+            vendor.id === vendorId
+              ? {
+                  ...vendor,
+                  name: input.name.trim(),
+                  email: input.email.trim(),
+                  paymentTerms: input.paymentTerms,
+                }
+              : vendor,
+          ),
+        })),
+      deleteVendor: (vendorId) =>
+        set((state) => ({
+          vendors: state.vendors.filter((vendor) => vendor.id !== vendorId),
+        })),
       bills: initialBills,
       addBill: (input) =>
         set((state) => {
