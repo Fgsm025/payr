@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum BillStatus {
+  draft
+  pending_approval
+  approved
+  scheduled
+  paid
+  rejected
+  archived
+}
+
+enum PaymentMethod {
+  ach
+  wire
+  check
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("admin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Vendor {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  email        String
+  paymentTerms Int      @default(30)
+  bankAccount  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  bills        Bill[]
+}
+
+model Bill {
+  id            String            @id @default(cuid())
+  invoiceNumber String            @unique
+  vendorId      String
+  vendor        Vendor            @relation(fields: [vendorId], references: [id])
+  status        BillStatus        @default(draft)
+  invoiceDate   DateTime
+  dueDate       DateTime
+  totalAmount   Float
+  currency      String            @default("USD")
+  notes         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  lineItems     BillLineItem[]
+  payments      Payment[]
+  history       BillStatusHistory[]
+}
+
+model BillLineItem {
+  id          String @id @default(cuid())
+  billId      String
+  bill        Bill   @relation(fields: [billId], references: [id])
+  description String
+  quantity    Float  @default(1)
+  unitPrice   Float
+  amount      Float
+  category    String
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  billId      String
+  bill        Bill          @relation(fields: [billId], references: [id])
+  amount      Float
+  paymentDate DateTime
+  method      PaymentMethod @default(ach)
+  reference   String?
+  createdAt   DateTime      @default(now())
+}
+
+model BillStatusHistory {
+  id        String     @id @default(cuid())
+  billId    String
+  bill      Bill       @relation(fields: [billId], references: [id])
+  status    BillStatus
+  comment   String?
+  createdAt DateTime   @default(now())
+}
