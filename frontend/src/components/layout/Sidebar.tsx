@@ -12,13 +12,14 @@ import {
 } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import Button from '../ui/Button'
+import { useI18n } from '../../i18n/useI18n'
 
 const navItems = [
-  { to: '/dashboard', label: 'Home', icon: LayoutDashboard },
-  { to: '/bills', label: 'Bills', icon: FileText },
-  { to: '/vendors', label: 'Vendors', icon: Building2 },
-  { to: '/payments', label: 'Payments', icon: CreditCard },
-  { to: '/settings', label: 'Settings', icon: Settings },
+  { to: '/dashboard', labelKey: 'nav.home', icon: LayoutDashboard },
+  { to: '/bills', labelKey: 'nav.bills', icon: FileText },
+  { to: '/vendors', labelKey: 'nav.vendors', icon: Building2 },
+  { to: '/payments', labelKey: 'nav.payments', icon: CreditCard },
+  { to: '/settings', labelKey: 'nav.settings', icon: Settings },
 ]
 
 export default function Sidebar() {
@@ -26,6 +27,7 @@ export default function Sidebar() {
   const legalEntities = useAppStore((state) => state.legalEntities)
   const selectedEntityId = useAppStore((state) => state.selectedEntityId)
   const setSelectedEntityId = useAppStore((state) => state.setSelectedEntityId)
+  const { t } = useI18n()
   const navigate = useNavigate()
 
   const onLogout = () => {
@@ -64,7 +66,7 @@ export default function Sidebar() {
         </div>
 
         <nav className='space-y-1'>
-          {navItems.map(({ to, label, icon: Icon }) => (
+          {navItems.map(({ to, labelKey, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
@@ -77,7 +79,7 @@ export default function Sidebar() {
               }
             >
               <Icon size={16} />
-              <span>{label}</span>
+              <span>{t(labelKey)}</span>
             </NavLink>
           ))}
         </nav>
@@ -89,13 +91,13 @@ export default function Sidebar() {
             variant='ghost'
             className='flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left'
           >
-            <CircleHelp size={15} /> Help & Support
+            <CircleHelp size={15} /> {t('nav.help')}
           </Button>
           <Button
             variant='ghost'
             className='flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left'
           >
-            <Shield size={15} /> Privacy Policy
+            <Shield size={15} /> {t('nav.privacy')}
           </Button>
         </div>
 
@@ -103,7 +105,7 @@ export default function Sidebar() {
           onClick={onLogout}
           className='flex w-full items-center justify-center gap-2 shadow-sm'
         >
-          <LogOut size={14} /> Logout
+          <LogOut size={14} /> {t('nav.logout')}
         </Button>
 
         <div className='flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-white px-3 py-3'>

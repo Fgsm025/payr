@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { bills as initialBills, vendors as initialVendors, type Bill, type BillStatus, type Vendor } from '../data/mockData'
+import type { Locale } from '../i18n/translations'
 
 type BillAction = 'submit' | 'approve' | 'reject' | 'pay' | 'archive'
 
@@ -45,6 +46,8 @@ type AppState = {
 
   theme: 'light' | 'dark'
   toggleTheme: () => void
+  locale: Locale
+  setLocale: (locale: Locale) => void
 
   isCreateBillModalOpen: boolean
   openCreateBillModal: () => void
@@ -55,6 +58,7 @@ type AppState = {
   authUser: AuthUser | null
   authExpiresAt: number | null
   login: (input: { email: string; password: string }) => Promise<boolean>
+  updateAuthProfile: (input: { name: string; email: string }) => void
   logout: () => void
   bootstrapAuth: () => void
 }
@@ -211,6 +215,8 @@ export const useAppStore = create<AppState>()(
 
       theme: 'light',
       toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+      locale: 'en',
+      setLocale: (locale) => set({ locale }),
 
       isCreateBillModalOpen: false,
       openCreateBillModal: () => set({ isCreateBillModalOpen: true }),
@@ -246,6 +252,17 @@ export const useAppStore = create<AppState>()(
           return false
         }
       },
+      updateAuthProfile: ({ name, email }) =>
+        set((state) => {
+          if (!state.authUser) return state
+          return {
+            authUser: {
+              ...state.authUser,
+              name: name.trim() || state.authUser.name,
+              email: email.trim() || state.authUser.email,
+            },
+          }
+        }),
       logout: () => {
         if (autoLogoutTimer) {
           globalThis.clearTimeout(autoLogoutTimer)
@@ -275,6 +292,7 @@ export const useAppStore = create<AppState>()(
         selectedEntityId: state.selectedEntityId,
         legalEntities: state.legalEntities,
         theme: state.theme,
+        locale: state.locale,
         authToken: state.authToken,
         authUser: state.authUser,
         authExpiresAt: state.authExpiresAt,

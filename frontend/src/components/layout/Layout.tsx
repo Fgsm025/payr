@@ -3,19 +3,21 @@ import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 import { useAppStore } from '../../store/useAppStore'
+import { useI18n } from '../../i18n/useI18n'
 
-const pageTitles: Record<string, string> = {
-  '/dashboard': 'Overview',
-  '/bills': 'Bills',
-  '/vendors': 'Vendors',
-  '/payments': 'Payments',
-  '/settings': 'Settings',
+const pageTitleKeys: Record<string, string> = {
+  '/dashboard': 'page.overview',
+  '/bills': 'page.bills',
+  '/vendors': 'page.vendors',
+  '/payments': 'page.payments',
+  '/settings': 'page.settings',
 }
 
 export default function Layout() {
   const location = useLocation()
   const theme = useAppStore((state) => state.theme)
-  const title = pageTitles[location.pathname] ?? 'Payr'
+  const { t } = useI18n()
+  const title = t(pageTitleKeys[location.pathname] ?? 'page.default')
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
