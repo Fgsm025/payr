@@ -128,6 +128,12 @@ button {
   color: #e2e8f0 !important;
 }
 
+[data-theme='dark'] .vendor-delete-btn:hover {
+  background-color: rgba(127, 29, 29, 0.35) !important;
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+}
+
 [data-theme='dark'] .hero-card {
   background: linear-gradient(
     135deg,

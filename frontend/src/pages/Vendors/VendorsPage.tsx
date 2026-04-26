@@ -111,7 +111,7 @@ export default function VendorsPage() {
           <button
             type="button"
             onClick={() => setVendorToDelete(row)}
-            className="rounded-lg border border-[var(--color-border)] p-1.5 text-slate-500 transition hover:bg-red-50 hover:text-red-600"
+            className="vendor-delete-btn rounded-lg border border-[var(--color-border)] p-1.5 text-slate-500 transition hover:border-red-500 hover:bg-red-50 hover:text-red-600"
             aria-label={`Delete ${row.name}`}
             title="Delete vendor"
           >

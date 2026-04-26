@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react'
+import { useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Button from '../components/ui/Button'
 import StatusBadge from '../components/ui/StatusBadge'
 import { useAppStore } from '../store/useAppStore'
@@ -8,6 +9,7 @@ const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', cu
 const isOverdue = (bill: Bill) => new Date(bill.dueDate) < new Date() && bill.status !== 'paid'
 
 type AgingRow = { vendor: string; b0_30: number; b31_60: number; b61_90: number; b90p: number; total: number }
+type CashOutRow = { month: string; total: number }
 
 function getBuckets(bills: Bill[], vendorById: Record<string, { name: string }>): AgingRow[] {
   const unpaidBills = bills.filter((bill) => !['paid', 'rejected', 'archived'].includes(bill.status))
@@ -34,7 +36,31 @@ function getDaysUntil(date: string) {
   return Math.ceil(diff / (1000 * 60 * 60 * 24))
 }
 
+function getCashOutByMonth(bills: Bill[]) {
+  const paid = bills.filter((bill) => bill.status === 'paid' && bill.paidDate)
+  const map = new Map<string, number>()
+
+  paid.forEach((bill) => {
+    const date = new Date(bill.paidDate as string)
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    map.set(key, (map.get(key) ?? 0) + bill.amount)
+  })
+
+  return Array.from(map.entries())
+    .sort(([a], [b]) => (a > b ? 1 : -1))
+    .slice(-6)
+    .map(([key, total]) => {
+      const [year, month] = key.split('-').map(Number)
+      const date = new Date(year, month - 1, 1)
+      return {
+        month: date.toLocaleString('en-US', { month: 'short' }),
+        total,
+      }
+    })
+}
+
 export default function Dashboard() {
+  const navigate = useNavigate()
   const bills = useAppStore((state) => state.bills)
   const vendors = useAppStore((state) => state.vendors)
 
@@ -55,6 +81,8 @@ export default function Dashboard() {
 
   const agingRows = getBuckets(bills, vendorById)
   const recentBills = [...bills].sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()).slice(0, 5)
+  const cashOutRows: CashOutRow[] = getCashOutByMonth(bills)
+  const maxCashOut = Math.max(...cashOutRows.map((row) => row.total), 1)
   const nextPaymentDue = [...bills]
     .filter((bill) => ['approved', 'scheduled'].includes(bill.status))
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0]
@@ -85,7 +113,7 @@ export default function Dashboard() {
               : 'No bill in approved or scheduled status'}
           </p>
           <div className="mt-6">
-            <Button>Pay now</Button>
+            <Button onClick={() => navigate('/bills?tab=for_payment')}>Pay now</Button>
           </div>
         </div>
 
@@ -140,6 +168,30 @@ export default function Dashboard() {
           <p className="text-xs text-slate-500">Paid This Month</p>
           <p className="mt-2 text-3xl font-semibold text-slate-900">{currencyFormatter.format(paidThisMonth)}</p>
           <p className="mt-2 text-xs text-slate-500">Great payment cadence</p>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-[var(--color-border)] bg-white p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-slate-900">Cash Out (Monthly)</h3>
+          <span className="text-xs text-slate-500">Paid bills only</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+          {cashOutRows.map((row) => {
+            const height = Math.max(Math.round((row.total / maxCashOut) * 120), 10)
+            return (
+              <div key={row.month} className="rounded-xl border border-[var(--color-border)] bg-slate-50 p-3">
+                <div className="mb-2 h-32 flex items-end">
+                  <div
+                    className="w-full rounded-md bg-[var(--color-primary)]"
+                    style={{ height: `${height}px` }}
+                  />
+                </div>
+                <p className="text-xs font-semibold text-slate-700">{row.month}</p>
+                <p className="text-xs text-slate-500">{currencyFormatter.format(row.total)}</p>
+              </div>
+            )
+          })}
         </div>
       </section>
 

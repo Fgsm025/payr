@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { CreditCard, Pencil, Plus, Trash2 } from 'lucide-react'
 import Button from '../../components/ui/Button'
+import Modal from '../../components/ui/Modal'
 import { useAppStore } from '../../store/useAppStore'
 
 const countries = ['Argentina', 'Uruguay', 'Chile', 'United States', 'Brazil']
@@ -17,7 +18,8 @@ export default function SettingsPage() {
   )
   const deleteLegalEntity = useAppStore((state) => state.deleteLegalEntity)
   const paymentMethods = useAppStore((state) => state.paymentMethods)
-  const addMockPaymentMethod = useAppStore((state) => state.addMockPaymentMethod)
+  const addPaymentMethod = useAppStore((state) => state.addPaymentMethod)
+  const deletePaymentMethod = useAppStore((state) => state.deletePaymentMethod)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [profileName, setProfileName] = useState(authUser?.name ?? 'Admin User')
   const [profileEmail, setProfileEmail] = useState(
@@ -28,6 +30,13 @@ export default function SettingsPage() {
   const [country, setCountry] = useState(countries[0])
   const [baseCurrency, setBaseCurrency] = useState(currencies[0])
   const [error, setError] = useState('')
+  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false)
+  const [isCardModalOpen, setIsCardModalOpen] = useState(false)
+  const [cardBrand, setCardBrand] = useState<'visa' | 'mastercard'>('visa')
+  const [cardLast4, setCardLast4] = useState('')
+  const [cardHolderName, setCardHolderName] = useState(authUser?.name ?? 'Admin User')
+  const [cardExpiry, setCardExpiry] = useState('')
+  const [cardError, setCardError] = useState('')
 
   const onCreateWorkspace = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -48,6 +57,7 @@ export default function SettingsPage() {
     setCountry(countries[0])
     setBaseCurrency(currencies[0])
     setError('')
+    setIsCompanyModalOpen(false)
   }
 
   const onSaveProfile = (event: React.SyntheticEvent<HTMLFormElement>) => {
@@ -60,6 +70,42 @@ export default function SettingsPage() {
     setProfileName(authUser?.name ?? 'Admin User')
     setProfileEmail(authUser?.email ?? 'admin@payr.co')
     setIsEditingProfile(false)
+  }
+
+  const resetCardForm = () => {
+    setCardBrand('visa')
+    setCardLast4('')
+    setCardHolderName(authUser?.name ?? 'Admin User')
+    setCardExpiry('')
+    setCardError('')
+  }
+
+  const onSubmitCard = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const last4 = cardLast4.trim()
+    const holder = cardHolderName.trim()
+    const expiry = cardExpiry.trim()
+    if (!/^\d{4}$/.test(last4) || !holder || !expiry) {
+      setCardError('Brand, 4 digits, cardholder, and expiry are required.')
+      return
+    }
+    addPaymentMethod({
+      brand: cardBrand,
+      last4,
+      holderName: holder,
+      expiry,
+    })
+    setIsCardModalOpen(false)
+    resetCardForm()
+  }
+
+  const onExpiryChange = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 4)
+    if (digits.length <= 2) {
+      setCardExpiry(digits)
+      return
+    }
+    setCardExpiry(`${digits.slice(0, 2)}/${digits.slice(2)}`)
   }
 
   return (
@@ -158,7 +204,13 @@ export default function SettingsPage() {
             <h3 className='text-lg font-semibold text-slate-900'>Payment Methods</h3>
             <p className='mt-1 text-sm text-slate-500'>Cards used to fund outgoing bill payments.</p>
           </div>
-          <Button onClick={addMockPaymentMethod} className='flex items-center gap-1.5'>
+          <Button
+            onClick={() => {
+              resetCardForm()
+              setIsCardModalOpen(true)
+            }}
+            className='flex items-center gap-1.5'
+          >
             <Plus size={14} /> Add Card
           </Button>
         </div>
@@ -180,20 +232,46 @@ export default function SettingsPage() {
                   **** {method.last4}
                 </span>
               </div>
-              <p className='mt-3 text-sm text-slate-700'>{method.holderName}</p>
-              <p className='text-xs text-slate-500'>Expires {method.expiry}</p>
+              <div className='mt-3 flex items-end justify-between gap-3'>
+                <div>
+                  <p className='text-sm text-slate-700'>{method.holderName}</p>
+                  <p className='text-xs text-slate-500'>Expires {method.expiry}</p>
+                </div>
+                <button
+                  type='button'
+                  onClick={() => deletePaymentMethod(method.id)}
+                  className='rounded-lg p-1.5 text-slate-500 transition hover:bg-red-50 hover:text-red-600'
+                  aria-label={`Delete card ending in ${method.last4}`}
+                  title='Delete card'
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
       <div className='rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-sm'>
-        <h3 className='text-lg font-semibold text-slate-900'>Companies</h3>
-        <p className='mt-1 text-sm text-slate-500'>
-          Create and manage sub-companies for your finance team.
-        </p>
+        <div className='mb-4 flex items-center justify-between gap-3'>
+          <div>
+            <h3 className='text-lg font-semibold text-slate-900'>Companies</h3>
+            <p className='mt-1 text-sm text-slate-500'>
+              Create and manage sub-companies for your finance team.
+            </p>
+          </div>
+          <Button
+            onClick={() => {
+              setError('')
+              setIsCompanyModalOpen(true)
+            }}
+            className='flex items-center gap-1.5'
+          >
+            <Plus size={14} /> Create company
+          </Button>
+        </div>
 
-        <div className='mt-5 space-y-2'>
+        <div className='space-y-2'>
           {legalEntities.map((entity) => (
             <div
               key={entity.id}
@@ -245,10 +323,59 @@ export default function SettingsPage() {
           ))}
         </div>
 
-        <form
-          onSubmit={onCreateWorkspace}
-          className='mt-5 grid gap-3 md:grid-cols-2'
-        >
+      </div>
+
+      <Modal
+        title='Add card'
+        isOpen={isCardModalOpen}
+        onClose={() => setIsCardModalOpen(false)}
+      >
+        <form onSubmit={onSubmitCard} className='grid gap-3 md:grid-cols-2'>
+          <select
+            value={cardBrand}
+            onChange={(event) => setCardBrand(event.target.value as 'visa' | 'mastercard')}
+            className='w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20'
+          >
+            <option value='visa'>Visa</option>
+            <option value='mastercard'>Mastercard</option>
+          </select>
+          <input
+            value={cardLast4}
+            onChange={(event) => setCardLast4(event.target.value)}
+            placeholder='Last 4 digits'
+            maxLength={4}
+            className='w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20'
+          />
+          <input
+            value={cardHolderName}
+            onChange={(event) => setCardHolderName(event.target.value)}
+            placeholder='Cardholder name'
+            className='w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20'
+          />
+          <input
+            value={cardExpiry}
+            onChange={(event) => onExpiryChange(event.target.value)}
+            placeholder='Expiry (MM/YY)'
+            inputMode='numeric'
+            maxLength={5}
+            className='w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20'
+          />
+          {cardError && <p className='text-sm text-red-600 md:col-span-2'>{cardError}</p>}
+          <div className='md:col-span-2 flex justify-end gap-2 pt-1'>
+            <Button type='button' variant='secondary' onClick={() => setIsCardModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type='submit'>Add card</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        title='Create company'
+        isOpen={isCompanyModalOpen}
+        onClose={() => setIsCompanyModalOpen(false)}
+      >
+        <form onSubmit={onCreateWorkspace} className='grid gap-3 md:grid-cols-2'>
           <input
             value={workspaceName}
             onChange={(event) => setWorkspaceName(event.target.value)}
@@ -283,12 +410,15 @@ export default function SettingsPage() {
               </option>
             ))}
           </select>
-          <Button type='submit' className='md:col-span-2'>
-            Create company
-          </Button>
+          {error && <p className='text-sm text-red-600 md:col-span-2'>{error}</p>}
+          <div className='md:col-span-2 flex justify-end gap-2 pt-1'>
+            <Button type='button' variant='secondary' onClick={() => setIsCompanyModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type='submit'>Create company</Button>
+          </div>
         </form>
-        {error && <p className='mt-2 text-sm text-red-600'>{error}</p>}
-      </div>
+      </Modal>
     </section>
   )
 }

@@ -57,6 +57,13 @@ type AppState = {
 
   paymentMethods: PaymentMethod[]
   addMockPaymentMethod: () => void
+  addPaymentMethod: (input: {
+    brand: 'visa' | 'mastercard'
+    last4: string
+    holderName: string
+    expiry: string
+  }) => void
+  deletePaymentMethod: (id: string) => void
 
   theme: 'light' | 'dark'
   toggleTheme: () => void
@@ -287,6 +294,23 @@ export const useAppStore = create<AppState>()(
             ],
           }
         }),
+      addPaymentMethod: (input) =>
+        set((state) => ({
+          paymentMethods: [
+            ...state.paymentMethods,
+            {
+              id: `pm-${input.brand}-${Date.now()}`,
+              brand: input.brand,
+              last4: input.last4,
+              holderName: input.holderName.trim(),
+              expiry: input.expiry.trim(),
+            },
+          ],
+        })),
+      deletePaymentMethod: (id) =>
+        set((state) => ({
+          paymentMethods: state.paymentMethods.filter((method) => method.id !== id),
+        })),
 
       theme: 'light',
       toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),

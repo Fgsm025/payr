@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { Bill } from '../../data/mockData'
 import { useAppStore } from '../../store/useAppStore'
 import Button from '../../components/ui/Button'
@@ -33,7 +33,10 @@ export default function BillsPage() {
   const openCreateBillModal = useAppStore((state) => state.openCreateBillModal)
   const closeCreateBillModal = useAppStore((state) => state.closeCreateBillModal)
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState('drafts')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialTab = searchParams.get('tab')
+  const isValidInitialTab = initialTab && tabConfig.some((tab) => tab.value === initialTab)
+  const [activeTab, setActiveTab] = useState(isValidInitialTab ? initialTab : 'drafts')
   const [filters, setFilters] = useState({ search: '', vendorFilter: 'all', dateFrom: '', dateTo: '' })
   const [payingBill, setPayingBill] = useState<{ id: string; amount: number; dueDate: string } | null>(null)
 
@@ -79,7 +82,14 @@ export default function BillsPage() {
           {tabConfig.map((tab) => (
             <Button
               key={tab.value}
-              onClick={() => setActiveTab(tab.value)}
+              onClick={() => {
+                setActiveTab(tab.value)
+                setSearchParams((prev) => {
+                  const next = new URLSearchParams(prev)
+                  next.set('tab', tab.value)
+                  return next
+                })
+              }}
               variant={activeTab === tab.value ? 'primary' : 'secondary'}
               className={activeTab === tab.value ? 'font-medium' : 'font-medium text-slate-600'}
             >
