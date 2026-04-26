@@ -18,6 +18,7 @@ export default function Layout() {
   const theme = useAppStore((state) => state.theme)
   const { t } = useI18n()
   const title = t(pageTitleKeys[location.pathname] ?? 'page.default')
+  const subtitle = location.pathname === '/payments' ? 'Completed bill payments.' : undefined
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
   useEffect(() => {
@@ -54,6 +55,7 @@ export default function Layout() {
             title={title}
             showNewBill={false}
             onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
+            subtitle={subtitle}
           />
           <div className='min-h-0 flex-1 overflow-y-auto pr-1'>
             <Outlet />

@@ -13,6 +13,7 @@ const bills_service_1 = require("./bills.service");
 const payments_module_1 = require("../payments/payments.module");
 const vendors_module_1 = require("../vendors/vendors.module");
 const database_module_1 = require("../database/database.module");
+const ocr_service_1 = require("./ocr.service");
 let BillsModule = class BillsModule {
 };
 exports.BillsModule = BillsModule;
@@ -20,7 +21,7 @@ exports.BillsModule = BillsModule = __decorate([
     (0, common_1.Module)({
         imports: [database_module_1.DatabaseModule, payments_module_1.PaymentsModule, vendors_module_1.VendorsModule],
         controllers: [bills_controller_1.BillsController],
-        providers: [bills_service_1.BillsService],
+        providers: [bills_service_1.BillsService, ocr_service_1.OcrService],
         exports: [bills_service_1.BillsService],
     })
 ], BillsModule);

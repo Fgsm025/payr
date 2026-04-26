@@ -8,9 +8,10 @@ type TopBarProps = Readonly<{
   title: string
   showNewBill: boolean
   onOpenMobileMenu?: () => void
+  subtitle?: string
 }>
 
-export default function TopBar({ title, showNewBill, onOpenMobileMenu }: TopBarProps) {
+export default function TopBar({ title, showNewBill, onOpenMobileMenu, subtitle }: TopBarProps) {
   const openCreateBillModal = useAppStore((state) => state.openCreateBillModal)
   const theme = useAppStore((state) => state.theme)
   const toggleTheme = useAppStore((state) => state.toggleTheme)
@@ -42,7 +43,9 @@ export default function TopBar({ title, showNewBill, onOpenMobileMenu }: TopBarP
           )}
           <h2 className="truncate text-xl font-semibold text-slate-950 md:text-2xl">{title}</h2>
         </div>
-        <p className="mt-0.5 hidden text-sm text-slate-500 md:block">{t('topbar.subtitle')}</p>
+        <p className="mt-0.5 hidden text-sm text-slate-500 md:block">
+          {subtitle ?? t('topbar.subtitle')}
+        </p>
       </div>
       <div className="flex shrink-0 items-center gap-2 md:gap-3">
         <div className="hidden items-center rounded-full border border-[var(--color-border)] bg-white p-0.5 sm:flex">

@@ -15,24 +15,19 @@ type CreateBillModalProps = Readonly<{
 }>
 
 const today = new Date().toISOString().slice(0, 10)
-const mockInvoiceData = {
-  vendor: 'Acme Corp',
-  invoiceNumber: 'INV-2026-682',
-  amount: '1250.00',
-  currency: 'USD',
-  invoiceDate: '2026-04-25',
-  dueDate: '2026-05-25',
-  notes: 'Servicios de consultoria mensual - Abril 2026',
-  lineItems: [
-    { description: 'Software Engineering Services', amount: '1000.00' },
-    { description: 'Cloud Infrastructure Setup', amount: '250.00' },
-  ],
-}
 
 function invoiceSuggestion() {
   const year = new Date().getFullYear()
   const serial = String(Math.floor(Math.random() * 900) + 100)
   return `INV-${year}-${serial}`
+}
+
+function normalizeVendorName(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replaceAll(/[\u0300-\u036f]/g, '')
+    .replaceAll(/[^a-z0-9]/g, '')
 }
 
 export default function CreateBillModal({ isOpen, onClose, onCreated }: CreateBillModalProps) {
@@ -85,25 +80,52 @@ export default function CreateBillModal({ isOpen, onClose, onCreated }: CreateBi
     onClose()
   }
 
-  const onDropAccepted = () => {
+  const onDropAccepted = async (acceptedFiles: File[]) => {
+    const file = acceptedFiles[0]
+    if (!file) return
     setError('')
     setStep('extracting')
-    setTimeout(() => {
+    try {
+      const body = new FormData()
+      body.append('file', file)
+      const response = await fetch(`${apiBaseUrl}/bills/extract`, {
+        method: 'POST',
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+        body,
+      })
+
+      if (response.status === 401) {
+        logout()
+        throw new Error('Session expired')
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to extract invoice')
+      }
+
+      const data = await response.json()
+      const extractedVendor = data.vendorName ? normalizeVendorName(String(data.vendorName).trim()) : ''
+      const vendorId =
+        vendors.find((v) => {
+          const vendorName = normalizeVendorName(v.name)
+          return vendorName === extractedVendor || vendorName.includes(extractedVendor) || extractedVendor.includes(vendorName)
+        })?.id ?? ''
+
       setIsManual(false)
-      const vendorId = vendors.find((v) => v.name === mockInvoiceData.vendor)?.id ?? ''
       setForm((prev) => ({
         ...prev,
         vendorId,
-        invoiceNumber: mockInvoiceData.invoiceNumber,
-        amount: mockInvoiceData.amount,
-        currency: mockInvoiceData.currency,
-        invoiceDate: mockInvoiceData.invoiceDate,
-        dueDate: mockInvoiceData.dueDate,
-        notes: mockInvoiceData.notes,
+        invoiceNumber: prev.invoiceNumber || invoiceSuggestion(),
+        amount: data.totalAmount ? String(data.totalAmount) : '',
+        currency: data.currency ?? 'USD',
+        invoiceDate: data.invoiceDate ? String(data.invoiceDate).slice(0, 10) : today,
+        dueDate: data.dueDate ? String(data.dueDate).slice(0, 10) : '',
       }))
-      setLineItems(mockInvoiceData.lineItems)
       setStep('form')
-    }, 1800)
+    } catch {
+      setError('AI extraction failed. You can continue with manual entry.')
+      onManualEntry()
+    }
   }
 
   const onDropRejected = () => {
@@ -154,7 +176,7 @@ export default function CreateBillModal({ isOpen, onClose, onCreated }: CreateBi
     setLineItems((prev) => [...prev, { description: '', amount: '' }])
   }
 
-  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!requiredValid) return
     setIsSubmitting(true)
@@ -247,7 +269,7 @@ export default function CreateBillModal({ isOpen, onClose, onCreated }: CreateBi
       {step === 'extracting' && (
         <div className="flex flex-col items-center py-8">
           <Loader2 className="animate-spin text-[var(--color-primary)]" size={32} />
-          <p className="mt-3 text-sm text-slate-600">Extracting data with AI...</p>
+          <p className="mt-3 text-sm text-slate-600">AI is analyzing your invoice...</p>
         </div>
       )}
 

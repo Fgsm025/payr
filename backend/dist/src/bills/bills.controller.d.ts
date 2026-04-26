@@ -1,7 +1,9 @@
 import { BillsService } from './bills.service';
+import { OcrService } from './ocr.service';
 export declare class BillsController {
     private readonly billsService;
-    constructor(billsService: BillsService);
+    private readonly ocrService;
+    constructor(billsService: BillsService, ocrService: OcrService);
     findAll(): import("@prisma/client").Prisma.PrismaPromise<({
         vendor: {
             id: string;
@@ -93,6 +95,16 @@ export declare class BillsController {
         currency: string;
         notes: string | null;
         vendorId: string;
+    }>;
+    extract(file: {
+        buffer: Buffer;
+        mimetype: string;
+    }): Promise<{
+        vendorName: string | null;
+        totalAmount: number | null;
+        invoiceDate: string | null;
+        dueDate: string | null;
+        currency: string | null;
     }>;
     patchStatus(id: string, body: {
         status: 'pending_approval';

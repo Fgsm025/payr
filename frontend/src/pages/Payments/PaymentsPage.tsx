@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import DataTable from '../../components/ui/DataTable'
 import Button from '../../components/ui/Button'
 import { useAppStore } from '../../store/useAppStore'
@@ -23,6 +23,9 @@ export default function PaymentsPage() {
   const bills = useAppStore((state) => state.bills)
   const vendors = useAppStore((state) => state.vendors)
   const paymentMethods = useAppStore((state) => state.paymentMethods)
+  const [vendorFilter, setVendorFilter] = useState('')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
 
   const rows = useMemo<PaymentRow[]>(() => {
     const vendorById = Object.fromEntries(vendors.map((vendor) => [vendor.id, vendor]))
@@ -50,6 +53,17 @@ export default function PaymentsPage() {
       .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
   }, [bills, paymentMethods, vendors])
 
+  const filteredRows = useMemo(
+    () =>
+      rows.filter((row) => {
+        const byVendor = !vendorFilter || row.vendor === vendorFilter
+        const byFrom = !fromDate || row.paymentDate >= fromDate
+        const byTo = !toDate || row.paymentDate <= toDate
+        return byVendor && byFrom && byTo
+      }),
+    [fromDate, rows, toDate, vendorFilter],
+  )
+
   const columns = [
     { key: 'paymentDate', label: 'Payment Date', sortable: true },
     { key: 'vendor', label: 'Vendor', sortable: true },
@@ -65,7 +79,7 @@ export default function PaymentsPage() {
 
   const onExport = () => {
     const header = ['Payment Date', 'Vendor', 'Amount', 'Payment Method', 'Reference #']
-    const lines = rows.map((row) => [
+    const lines = filteredRows.map((row) => [
       row.paymentDate,
       row.vendor,
       row.amount.toFixed(2),
@@ -89,17 +103,46 @@ export default function PaymentsPage() {
   return (
     <div className='space-y-4'>
       <div className='rounded-2xl border border-[var(--color-border)] bg-white p-5'>
-        <div className='flex items-start justify-between gap-3'>
-          <div>
-            <h3 className='text-lg font-semibold text-slate-900'>Payment History</h3>
-            <p className='mt-1 text-sm text-slate-500'>Completed bill payments.</p>
-          </div>
-          <Button variant='secondary' onClick={onExport} disabled={!rows.length}>
+        <div className='grid gap-3 lg:grid-cols-[minmax(220px,1.2fr)_minmax(170px,0.8fr)_minmax(170px,0.8fr)_auto]'>
+          <label className='text-sm'>
+            <span className='mb-1 block text-slate-600'>Vendor</span>
+            <select
+              value={vendorFilter}
+              onChange={(event) => setVendorFilter(event.target.value)}
+              className='w-full rounded-xl border border-[var(--color-border)] px-3 py-2'
+            >
+              <option value=''>All vendors</option>
+              {vendors.map((vendor) => (
+                <option key={vendor.id} value={vendor.name}>
+                  {vendor.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className='text-sm'>
+            <span className='mb-1 block text-slate-600'>From</span>
+            <input
+              type='date'
+              value={fromDate}
+              onChange={(event) => setFromDate(event.target.value)}
+              className='w-full rounded-xl border border-[var(--color-border)] px-3 py-2'
+            />
+          </label>
+          <label className='text-sm'>
+            <span className='mb-1 block text-slate-600'>To</span>
+            <input
+              type='date'
+              value={toDate}
+              onChange={(event) => setToDate(event.target.value)}
+              className='w-full rounded-xl border border-[var(--color-border)] px-3 py-2'
+            />
+          </label>
+          <Button variant='secondary' onClick={onExport} disabled={!filteredRows.length} className='self-end'>
             Export CSV
           </Button>
         </div>
       </div>
-      <DataTable columns={columns} data={rows} rowKey={(row) => row.id} />
+      <DataTable columns={columns} data={filteredRows} rowKey={(row) => row.id} />
     </div>
   )
 }

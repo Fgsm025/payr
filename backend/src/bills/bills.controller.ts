@@ -1,11 +1,16 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { BillsService } from './bills.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { OcrService } from './ocr.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('bills')
 export class BillsController {
-  constructor(private readonly billsService: BillsService) {}
+  constructor(
+    private readonly billsService: BillsService,
+    private readonly ocrService: OcrService,
+  ) {}
 
   @Get()
   findAll() {
@@ -28,6 +33,12 @@ export class BillsController {
     },
   ) {
     return this.billsService.create(body);
+  }
+
+  @Post('extract')
+  @UseInterceptors(FileInterceptor('file'))
+  extract(@UploadedFile() file: { buffer: Buffer; mimetype: string }) {
+    return this.ocrService.extractInvoiceFromFile(file);
   }
 
   @Patch(':id')
