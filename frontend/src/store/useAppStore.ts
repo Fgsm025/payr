@@ -6,6 +6,8 @@ import { API_BASE_URL } from '@/lib/apiBaseUrl'
 import { queryClient } from '@/lib/queryClient'
 import { workspaceQk } from '@/lib/workspaceQueryKeys'
 
+export const DEFAULT_WORKSPACE_ID = 'company-x'
+
 type BillAction = 'submit' | 'approve' | 'reject' | 'pay' | 'archive'
 
 type AuthUser = {
@@ -24,6 +26,18 @@ type LegalEntity = {
   isDefault: boolean
 }
 
+/** Matches the default seeded workspace (`company-x`) — first company in the app. */
+const DEFAULT_LEGAL_ENTITY: LegalEntity = {
+  id: DEFAULT_WORKSPACE_ID,
+  name: 'Company X',
+  taxId: '12-3456789',
+  country: 'United States',
+  baseCurrency: 'USD',
+  isDefault: true,
+}
+
+const LEGACY_WORKSPACE_IDS = new Set(['xyz-ar', 'xyz-cl', 'xyz-uy'])
+
 type PaymentMethod = {
   id: string
   brand: 'visa' | 'mastercard'
@@ -41,6 +55,37 @@ function workspaceHeaders(token: string, workspaceId: string): HeadersInit {
 
 function invalidateWorkspaceQueries(workspaceId: string) {
   void queryClient.invalidateQueries({ queryKey: ['workspace', workspaceId] })
+}
+
+function syncCompanyXFromSeed(entities: LegalEntity[]): LegalEntity[] {
+  return entities.map((e) =>
+    e.id === DEFAULT_WORKSPACE_ID
+      ? {
+          ...e,
+          name: DEFAULT_LEGAL_ENTITY.name,
+          taxId: DEFAULT_LEGAL_ENTITY.taxId,
+          country: DEFAULT_LEGAL_ENTITY.country,
+          baseCurrency: DEFAULT_LEGAL_ENTITY.baseCurrency,
+        }
+      : e,
+  )
+}
+
+function normalizePersistedWorkspace(raw: Record<string, unknown>) {
+  const prev: LegalEntity[] = Array.isArray(raw.legalEntities) ? (raw.legalEntities as LegalEntity[]) : []
+  const stripped = prev.filter((e) => !LEGACY_WORKSPACE_IDS.has(e.id))
+  const hasCompanyX = stripped.some((e) => e.id === DEFAULT_WORKSPACE_ID)
+  let next: LegalEntity[] = hasCompanyX ? stripped : [{ ...DEFAULT_LEGAL_ENTITY }, ...stripped]
+
+  const defaultId = next.find((e) => e.isDefault)?.id ?? next[0]?.id ?? DEFAULT_WORKSPACE_ID
+  next = next.map((e) => ({ ...e, isDefault: e.id === defaultId }))
+
+  let wid = (raw.activeWorkspaceId as string) ?? (raw.selectedEntityId as string) ?? DEFAULT_WORKSPACE_ID
+  if (LEGACY_WORKSPACE_IDS.has(wid)) wid = DEFAULT_WORKSPACE_ID
+  if (!next.some((e) => e.id === wid)) wid = next[0]?.id ?? DEFAULT_WORKSPACE_ID
+
+  raw.legalEntities = syncCompanyXFromSeed(next)
+  raw.activeWorkspaceId = wid
 }
 
 type AppState = {
@@ -201,33 +246,8 @@ export const useAppStore = create<AppState>()(
         })
       },
 
-      legalEntities: [
-        {
-          id: 'xyz-ar',
-          name: 'XYZ Argentina S.A.',
-          taxId: '30-12345678-9',
-          country: 'Argentina',
-          baseCurrency: 'ARS',
-          isDefault: true,
-        },
-        {
-          id: 'xyz-cl',
-          name: 'XYZ Chile SpA',
-          taxId: '76.123.456-7',
-          country: 'Chile',
-          baseCurrency: 'CLP',
-          isDefault: false,
-        },
-        {
-          id: 'xyz-uy',
-          name: 'XYZ Uruguay S.A.',
-          taxId: '218765430019',
-          country: 'Uruguay',
-          baseCurrency: 'UYU',
-          isDefault: false,
-        },
-      ],
-      activeWorkspaceId: 'xyz-ar',
+      legalEntities: [{ ...DEFAULT_LEGAL_ENTITY }],
+      activeWorkspaceId: DEFAULT_WORKSPACE_ID,
       setActiveWorkspaceId: (id) => set({ activeWorkspaceId: id }),
       addLegalEntity: (input) =>
         set((state) => {
@@ -235,11 +255,12 @@ export const useAppStore = create<AppState>()(
           if (!trimmed) return state
           const exists = state.legalEntities.some((entity) => entity.name.toLowerCase() === trimmed.toLowerCase())
           if (exists) return state
+          const id = `entity-${Date.now()}`
           return {
             legalEntities: [
               ...state.legalEntities,
               {
-                id: `entity-${Date.now()}`,
+                id,
                 name: trimmed,
                 taxId: input.taxId.trim(),
                 country: input.country,
@@ -247,6 +268,7 @@ export const useAppStore = create<AppState>()(
                 isDefault: false,
               },
             ],
+            activeWorkspaceId: id,
           }
         }),
       setDefaultLegalEntity: (id) =>
@@ -406,16 +428,22 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'billpay-store',
-      version: 1,
-      migrate: (persisted, version) => {
-        if (version < 1 && persisted && typeof persisted === 'object') {
-          const p = persisted as { activeWorkspaceId?: string; selectedEntityId?: string }
-          return {
-            ...persisted,
-            activeWorkspaceId: p.activeWorkspaceId ?? p.selectedEntityId ?? 'xyz-ar',
-          }
+      version: 3,
+      migrate: (persisted, fromVersion) => {
+        if (!persisted || typeof persisted !== 'object') return persisted
+        const raw = { ...(persisted as Record<string, unknown>) }
+        const v = fromVersion ?? 0
+        if (v < 1) {
+          const p = raw as { activeWorkspaceId?: string; selectedEntityId?: string }
+          raw.activeWorkspaceId = p.activeWorkspaceId ?? p.selectedEntityId ?? DEFAULT_WORKSPACE_ID
         }
-        return persisted
+        if (v < 2) {
+          normalizePersistedWorkspace(raw)
+        }
+        if (v < 3 && Array.isArray(raw.legalEntities)) {
+          raw.legalEntities = syncCompanyXFromSeed(raw.legalEntities as LegalEntity[])
+        }
+        return raw
       },
       partialize: (state) => ({
         activeWorkspaceId: state.activeWorkspaceId,

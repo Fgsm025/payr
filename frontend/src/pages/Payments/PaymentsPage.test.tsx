@@ -46,7 +46,7 @@ describe('PaymentsPage', () => {
     useAppStore.setState({
       authToken: 'tok',
       isAuthenticated: true,
-      activeWorkspaceId: 'xyz-ar',
+      activeWorkspaceId: 'company-x',
       bills: [],
       vendors,
     })
@@ -61,7 +61,7 @@ describe('PaymentsPage', () => {
     expect(screen.getByText('ACH')).toBeInTheDocument()
     expect(screen.getByText('REF-001')).toBeInTheDocument()
     expect(global.fetch).toHaveBeenCalledWith('http://localhost:3001/payments', {
-      headers: { Authorization: 'Bearer tok', 'X-Entity-Id': 'xyz-ar' },
+      headers: { Authorization: 'Bearer tok', 'X-Entity-Id': 'company-x' },
     })
   })
 })

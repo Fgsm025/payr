@@ -62,7 +62,7 @@ describe('Dashboard', () => {
     useAppStore.setState({
       authToken: 'token',
       isAuthenticated: true,
-      activeWorkspaceId: 'xyz-ar',
+      activeWorkspaceId: 'company-x',
       bills: [],
       vendors,
     })

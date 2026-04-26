@@ -190,16 +190,8 @@ export default function Dashboard() {
   return (
     <div className="space-y-4">
       <section className="grid gap-4 xl:grid-cols-5">
-        <div
-          className={`hero-card rounded-2xl border border-[var(--color-border)] bg-gradient-to-br from-[#f2fdff] via-[#e9fbff] to-[#d7f4fb] p-6 xl:col-span-2${
-            heroOverdue ? ' ring-2 ring-red-200' : ''
-          }`}
-        >
-          <p
-            className={`text-xs font-semibold uppercase tracking-wide ${
-              heroOverdue ? 'text-red-600' : 'text-slate-500'
-            }`}
-          >
+        <div className="hero-card rounded-2xl border border-[var(--color-border)] bg-gradient-to-br from-[#f2fdff] via-[#e9fbff] to-[#d7f4fb] p-6 xl:col-span-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             {heroOverdue ? 'Overdue payment' : 'Your next payment due'}
           </p>
           <p className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">

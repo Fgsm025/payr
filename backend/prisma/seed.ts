@@ -17,9 +17,8 @@ function payInMonth(anchor: Date, monthsBefore: number, day: number) {
   return new Date(anchor.getFullYear(), anchor.getMonth() - monthsBefore, day);
 }
 
-const E_AR = 'xyz-ar';
-const E_CL = 'xyz-cl';
-const E_UY = 'xyz-uy';
+/** Default workspace (matches UI “Company X”, US / 12-3456789 / USD). */
+const COMPANY_X = 'company-x';
 
 type SeedBillDef = {
   invoiceNumber: string;
@@ -320,117 +319,7 @@ async function main() {
     },
   ];
 
-  await seedEntity(E_AR, arVendors, arDefs);
-
-  const clVendors: VendorSeed[] = [
-    { name: 'LATAM Logistics SA', email: 'ap@latamlogistics.cl', paymentTerms: 30 },
-    { name: 'Santiago Office Supplies', email: 'facturacion@sos.cl', paymentTerms: 15 },
-    { name: 'Chile Telecom', email: 'cobranza@chiletelecom.cl', paymentTerms: 45 },
-    { name: 'Andes Mining Services', email: 'finance@andesmining.cl', paymentTerms: 30 },
-  ];
-
-  const clDefs: SeedBillDef[] = [
-    {
-      invoiceNumber: 'INV-CL-001',
-      vendorIdx: 0,
-      status: 'draft',
-      invoiceDate: new Date('2026-04-01'),
-      dueDate: new Date('2026-05-01'),
-      totalAmount: 8900,
-      notes: 'Freight consolidation — March 2026 (Chile entity).',
-    },
-    {
-      invoiceNumber: 'INV-CL-002',
-      vendorIdx: 1,
-      status: 'pending_approval',
-      invoiceDate: new Date('2026-03-10'),
-      dueDate: new Date('2026-02-28'),
-      totalAmount: 1200,
-      notes: 'Office equipment lease — overdue for demo aging.',
-    },
-    {
-      invoiceNumber: 'INV-CL-003',
-      vendorIdx: 2,
-      status: 'approved',
-      invoiceDate: new Date('2026-02-01'),
-      dueDate: new Date('2026-03-15'),
-      totalAmount: 5600,
-      notes: 'Fiber circuit — regional HQ.',
-    },
-    {
-      invoiceNumber: 'INV-CL-004',
-      vendorIdx: 3,
-      status: 'paid',
-      invoiceDate: new Date('2026-03-20'),
-      dueDate: new Date('2026-04-10'),
-      totalAmount: 24000,
-      notes: 'Equipment rental — Q1 2026.',
-      withPayment: true,
-      paymentMethod: 'wire',
-    },
-    {
-      invoiceNumber: 'INV-CL-005',
-      vendorIdx: 0,
-      status: 'paid',
-      invoiceDate: new Date('2026-04-05'),
-      dueDate: new Date('2026-04-25'),
-      totalAmount: 3100,
-      notes: 'Last-mile delivery — April.',
-      withPayment: true,
-      paymentMethod: 'ach',
-    },
-  ];
-
-  await seedEntity(E_CL, clVendors, clDefs);
-
-  const uyVendors: VendorSeed[] = [
-    { name: 'Montevideo Hosting', email: 'billing@mvdhosting.uy', paymentTerms: 30 },
-    { name: 'Río Plata Software', email: 'invoices@rioplatasoft.uy', paymentTerms: 30 },
-    { name: 'UY Payroll Partners', email: 'ap@uypp.uy', paymentTerms: 15 },
-  ];
-
-  const uyDefs: SeedBillDef[] = [
-    {
-      invoiceNumber: 'INV-UY-001',
-      vendorIdx: 0,
-      status: 'draft',
-      invoiceDate: new Date('2026-04-02'),
-      dueDate: new Date('2026-05-10'),
-      totalAmount: 4500,
-      notes: 'Colocation renewal — Uruguay entity.',
-    },
-    {
-      invoiceNumber: 'INV-UY-002',
-      vendorIdx: 1,
-      status: 'pending_approval',
-      invoiceDate: new Date('2026-02-20'),
-      dueDate: new Date('2026-03-10'),
-      totalAmount: 18750,
-      notes: 'ERP module license — overdue sample.',
-    },
-    {
-      invoiceNumber: 'INV-UY-003',
-      vendorIdx: 2,
-      status: 'approved',
-      invoiceDate: new Date('2026-03-01'),
-      dueDate: new Date('2026-04-01'),
-      totalAmount: 6200,
-      notes: 'Payroll processing — March 2026.',
-    },
-    {
-      invoiceNumber: 'INV-UY-004',
-      vendorIdx: 0,
-      status: 'paid',
-      invoiceDate: new Date('2026-04-01'),
-      dueDate: new Date('2026-04-20'),
-      totalAmount: 990,
-      notes: 'Bandwidth upgrade.',
-      withPayment: true,
-      paymentMethod: 'check',
-    },
-  ];
-
-  await seedEntity(E_UY, uyVendors, uyDefs);
+  await seedEntity(COMPANY_X, arVendors, arDefs);
 }
 
 main()

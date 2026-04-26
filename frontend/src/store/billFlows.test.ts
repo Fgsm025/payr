@@ -91,11 +91,11 @@ describe('bill flows (store)', () => {
       expect.objectContaining({
         method: 'PATCH',
         headers: expect.objectContaining({
-          'X-Entity-Id': 'xyz-ar',
+          'X-Entity-Id': 'company-x',
         }),
       }),
     )
-    expect(invSpy).toHaveBeenCalledWith({ queryKey: ['workspace', 'xyz-ar'] })
+    expect(invSpy).toHaveBeenCalledWith({ queryKey: ['workspace', 'company-x'] })
     expect(useAppStore.getState().bills.find((b) => b.id === 'flow-test-1')?.status).toBe('draft')
     invSpy.mockRestore()
   })
@@ -120,12 +120,12 @@ describe('bill flows (store)', () => {
       }),
     ) as jest.Mock
 
-    const list = await fetchBillsApi('t', 'xyz-ar')
+    const list = await fetchBillsApi('t', 'company-x')
 
     expect(global.fetch).toHaveBeenCalledWith(
       'http://localhost:3001/bills',
       expect.objectContaining({
-        headers: { Authorization: 'Bearer t', 'X-Entity-Id': 'xyz-ar' },
+        headers: { Authorization: 'Bearer t', 'X-Entity-Id': 'company-x' },
       }),
     )
     expect(list.some((b) => b.id === 'api-1')).toBe(true)
