@@ -1,32 +1,83 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/ui/Button'
 import StatusBadge from '../components/ui/StatusBadge'
 import { useAppStore } from '../store/useAppStore'
 import type { Bill } from '../data/mockData'
 
-const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
-const isOverdue = (bill: Bill) => new Date(bill.dueDate) < new Date() && bill.status !== 'paid'
+const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
 
-type AgingRow = { vendor: string; b0_30: number; b31_60: number; b61_90: number; b90p: number; total: number }
+const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+const isOverdue = (bill: Bill) =>
+  new Date(bill.dueDate) < new Date() && !['paid', 'rejected', 'archived'].includes(bill.status)
+
+type AgingRow = {
+  vendor: string
+  current: number
+  b0_30: number
+  b31_60: number
+  b61_90: number
+  b90p: number
+  total: number
+}
 type CashOutRow = { month: string; total: number }
+
+type SummaryApi = {
+  totalPayable: number
+  pendingApproval: number
+  overdue: number
+  paidThisMonth: number
+}
+
+type AgingApiRow = {
+  vendor: string
+  current: number
+  bucket_0_30: number
+  bucket_31_60: number
+  bucket_61_90: number
+  bucket_90_plus: number
+  total: number
+}
+
+function startOfDay(d: Date) {
+  const x = new Date(d)
+  x.setHours(0, 0, 0, 0)
+  return x
+}
 
 function getBuckets(bills: Bill[], vendorById: Record<string, { name: string }>): AgingRow[] {
   const unpaidBills = bills.filter((bill) => !['paid', 'rejected', 'archived'].includes(bill.status))
   const map: Record<string, AgingRow> = {}
+  const today = startOfDay(new Date())
 
   unpaidBills.forEach((bill) => {
     const vendorName = vendorById[bill.vendorId]?.name || 'Unknown'
-    const diffDays = Math.floor((Date.now() - new Date(bill.dueDate).getTime()) / (1000 * 60 * 60 * 24))
-    if (!map[vendorName]) map[vendorName] = { vendor: vendorName, b0_30: 0, b31_60: 0, b61_90: 0, b90p: 0, total: 0 }
-    if (diffDays <= 30) map[vendorName].b0_30 += bill.amount
+    const due = startOfDay(new Date(bill.dueDate))
+    const diffDays = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24))
+    if (!map[vendorName]) {
+      map[vendorName] = { vendor: vendorName, current: 0, b0_30: 0, b31_60: 0, b61_90: 0, b90p: 0, total: 0 }
+    }
+    if (diffDays <= 0) map[vendorName].current += bill.amount
+    else if (diffDays <= 30) map[vendorName].b0_30 += bill.amount
     else if (diffDays <= 60) map[vendorName].b31_60 += bill.amount
     else if (diffDays <= 90) map[vendorName].b61_90 += bill.amount
     else map[vendorName].b90p += bill.amount
     map[vendorName].total += bill.amount
   })
 
-  return Object.values(map)
+  return Object.values(map).sort((a, b) => a.vendor.localeCompare(b.vendor))
+}
+
+function mapApiAging(rows: AgingApiRow[]): AgingRow[] {
+  return rows.map((r) => ({
+    vendor: r.vendor,
+    current: r.current,
+    b0_30: r.bucket_0_30,
+    b31_60: r.bucket_31_60,
+    b61_90: r.bucket_61_90,
+    b90p: r.bucket_90_plus,
+    total: r.total,
+  }))
 }
 
 function getDaysUntil(date: string) {
@@ -63,13 +114,43 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const bills = useAppStore((state) => state.bills)
   const vendors = useAppStore((state) => state.vendors)
+  const authToken = useAppStore((state) => state.authToken)
+
+  const [apiSummary, setApiSummary] = useState<SummaryApi | null>(null)
+  const [apiAging, setApiAging] = useState<AgingApiRow[] | null>(null)
+  const [dashLoading, setDashLoading] = useState(false)
+
+  useEffect(() => {
+    if (!authToken) return
+    let cancelled = false
+    setDashLoading(true)
+    const headers = { Authorization: `Bearer ${authToken}` }
+    void Promise.all([
+      fetch(`${apiBaseUrl}/dashboard/summary`, { headers }),
+      fetch(`${apiBaseUrl}/dashboard/ap-aging`, { headers }),
+    ])
+      .then(async ([summaryRes, agingRes]) => {
+        if (cancelled) return
+        if (summaryRes.ok) setApiSummary((await summaryRes.json()) as SummaryApi)
+        if (agingRes.ok) setApiAging((await agingRes.json()) as AgingApiRow[])
+      })
+      .catch(() => {
+        /* fallback to store */
+      })
+      .finally(() => {
+        if (!cancelled) setDashLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [authToken])
 
   const vendorById = useMemo(() => Object.fromEntries(vendors.map((vendor) => [vendor.id, vendor])), [vendors])
 
-  const overdueCount = bills.filter((bill) => isOverdue(bill)).length
-  const pendingApprovalCount = bills.filter((bill) => bill.status === 'pending_approval').length
+  const fallbackOverdueCount = bills.filter((bill) => isOverdue(bill)).length
+  const fallbackPending = bills.filter((bill) => bill.status === 'pending_approval').length
   const now = new Date()
-  const paidThisMonth = bills
+  const fallbackPaidThisMonth = bills
     .filter(
       (bill) =>
         bill.paidDate &&
@@ -78,8 +159,16 @@ export default function Dashboard() {
         new Date(bill.paidDate).getFullYear() === now.getFullYear(),
     )
     .reduce((sum, bill) => sum + bill.amount, 0)
+  const fallbackTotalPayable = bills
+    .filter((bill) => !['paid', 'rejected', 'archived'].includes(bill.status))
+    .reduce((sum, bill) => sum + bill.amount, 0)
 
-  const agingRows = getBuckets(bills, vendorById)
+  const totalPayable = apiSummary?.totalPayable ?? fallbackTotalPayable
+  const pendingApprovalCount = apiSummary?.pendingApproval ?? fallbackPending
+  const overdueCount = apiSummary?.overdue ?? fallbackOverdueCount
+  const paidThisMonth = apiSummary?.paidThisMonth ?? fallbackPaidThisMonth
+
+  const agingRows = apiAging ? mapApiAging(apiAging) : getBuckets(bills, vendorById)
   const recentBills = [...bills].sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()).slice(0, 5)
   const cashOutRows: CashOutRow[] = getCashOutByMonth(bills)
   const maxCashOut = Math.max(...cashOutRows.map((row) => row.total), 1)
@@ -95,6 +184,8 @@ export default function Dashboard() {
     )
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
     .slice(0, 6)
+
+  const kpiClass = dashLoading ? 'opacity-50' : ''
 
   return (
     <div className="space-y-4">
@@ -153,7 +244,12 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className={`grid gap-4 md:grid-cols-2 xl:grid-cols-4 ${kpiClass}`}>
+        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4">
+          <p className="text-xs text-slate-500">Total Payable</p>
+          <p className="mt-2 text-3xl font-semibold text-slate-900">{currencyFormatter.format(totalPayable)}</p>
+          <p className="mt-2 text-xs text-slate-400">Open obligations</p>
+        </div>
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4">
           <p className="text-xs text-slate-500">Pending Approval</p>
           <p className="mt-2 text-3xl font-semibold text-slate-900">{pendingApprovalCount}</p>
@@ -195,13 +291,14 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-[var(--color-border)] bg-white p-4">
+      <section className={`rounded-2xl border border-[var(--color-border)] bg-white p-4 ${kpiClass}`}>
         <h3 className="mb-3 text-lg font-semibold text-slate-900">AP Aging</h3>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--color-border)] text-slate-500">
                 <th className="px-3 py-2 text-left">Vendor</th>
+                <th className="px-3 py-2 text-right">Current</th>
                 <th className="px-3 py-2 text-right">0-30</th>
                 <th className="px-3 py-2 text-right">31-60</th>
                 <th className="px-3 py-2 text-right">61-90</th>
@@ -213,6 +310,7 @@ export default function Dashboard() {
               {agingRows.map((row) => (
                 <tr key={row.vendor} className="border-b border-[var(--color-border)] text-slate-700">
                   <td className="px-3 py-2 font-medium">{row.vendor}</td>
+                  <td className="px-3 py-2 text-right">{currencyFormatter.format(row.current)}</td>
                   <td className="px-3 py-2 text-right">{currencyFormatter.format(row.b0_30)}</td>
                   <td className="px-3 py-2 text-right">{currencyFormatter.format(row.b31_60)}</td>
                   <td className="px-3 py-2 text-right">{currencyFormatter.format(row.b61_90)}</td>

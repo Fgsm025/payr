@@ -1,7 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import DataTable from '../../components/ui/DataTable'
 import Button from '../../components/ui/Button'
 import { useAppStore } from '../../store/useAppStore'
+import type { Bill } from '../../data/mockData'
+
+const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
 
 type PaymentRow = {
   id: string
@@ -12,6 +15,15 @@ type PaymentRow = {
   reference: string
 }
 
+type ApiPayment = {
+  id: string
+  amount: number
+  paymentDate: string
+  method: string
+  reference: string | null
+  bill: { invoiceNumber: string; vendor: { name: string } }
+}
+
 function extractPaymentMethodId(comment?: string) {
   if (!comment) return null
   const regex = /via\s+([a-z0-9-]+)/i
@@ -19,27 +31,74 @@ function extractPaymentMethodId(comment?: string) {
   return match?.[1] ?? null
 }
 
+function formatApiPaymentMethod(method: string): string {
+  switch (method) {
+    case 'ach':
+      return 'ACH'
+    case 'wire':
+      return 'Wire Transfer'
+    case 'check':
+      return 'Check'
+    default:
+      return 'Bank Transfer'
+  }
+}
+
 export default function PaymentsPage() {
   const bills = useAppStore((state) => state.bills)
   const vendors = useAppStore((state) => state.vendors)
   const paymentMethods = useAppStore((state) => state.paymentMethods)
-  const [vendorFilter, setVendorFilter] = useState('')
-  const [fromDate, setFromDate] = useState('')
-  const [toDate, setToDate] = useState('')
+  const authToken = useAppStore((state) => state.authToken)
 
-  const rows = useMemo<PaymentRow[]>(() => {
+  const [apiRows, setApiRows] = useState<PaymentRow[] | null>(null)
+  const [paymentsLoading, setPaymentsLoading] = useState(false)
+
+  useEffect(() => {
+    if (!authToken) {
+      setApiRows(null)
+      setPaymentsLoading(false)
+      return
+    }
+    let cancelled = false
+    setPaymentsLoading(true)
+    void fetch(`${apiBaseUrl}/payments`, { headers: { Authorization: `Bearer ${authToken}` } })
+      .then(async (res) => {
+        if (!res.ok || cancelled) return
+        const data = (await res.json()) as ApiPayment[]
+        const mapped: PaymentRow[] = data.map((p) => ({
+          id: p.id,
+          paymentDate: p.paymentDate.slice(0, 10),
+          vendor: p.bill.vendor.name,
+          amount: p.amount,
+          paymentMethod: formatApiPaymentMethod(p.method),
+          reference: p.reference ?? p.bill.invoiceNumber,
+        }))
+        if (!cancelled) setApiRows(mapped)
+      })
+      .catch(() => {
+        if (!cancelled) setApiRows(null)
+      })
+      .finally(() => {
+        if (!cancelled) setPaymentsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [authToken])
+
+  const storeRows = useMemo<PaymentRow[]>(() => {
     const vendorById = Object.fromEntries(vendors.map((vendor) => [vendor.id, vendor]))
     const paymentMethodById = Object.fromEntries(paymentMethods.map((method) => [method.id, method]))
 
     return bills
-      .filter((bill) => bill.status === 'paid')
-      .map((bill) => {
+      .filter((bill: Bill) => bill.status === 'paid')
+      .map((bill: Bill) => {
         const paidHistory = [...(bill.history ?? [])].reverse().find((entry) => entry.status === 'paid')
         const paymentMethodId = extractPaymentMethodId(paidHistory?.comment)
         const paymentMethod = paymentMethodId ? paymentMethodById[paymentMethodId] : null
         const paymentMethodLabel = paymentMethod
           ? `${paymentMethod.brand.toUpperCase()} **** ${paymentMethod.last4}`
-          : 'Manual / Unknown'
+          : 'Bank Transfer'
 
         return {
           id: bill.id,
@@ -52,6 +111,12 @@ export default function PaymentsPage() {
       })
       .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
   }, [bills, paymentMethods, vendors])
+
+  const rows = apiRows ?? storeRows
+
+  const [vendorFilter, setVendorFilter] = useState('')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
 
   const filteredRows = useMemo(
     () =>
@@ -101,7 +166,7 @@ export default function PaymentsPage() {
   }
 
   return (
-    <div className='space-y-4'>
+    <div className={`space-y-4 ${paymentsLoading ? 'opacity-50' : ''}`}>
       <div className='rounded-2xl border border-[var(--color-border)] bg-white p-5'>
         <div className='grid gap-3 lg:grid-cols-[minmax(220px,1.2fr)_minmax(170px,0.8fr)_minmax(170px,0.8fr)_auto]'>
           <label className='text-sm'>
