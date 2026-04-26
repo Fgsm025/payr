@@ -5,6 +5,7 @@ import Button from '../../components/ui/Button'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import Modal from '../../components/ui/Modal'
 import TableSkeleton from '../../components/ui/TableSkeleton'
+import { useTranslation } from '../../i18n/useI18n'
 import { useWorkspaceBillsQuery, useWorkspaceVendorsQuery } from '@/hooks/useWorkspaceQueries'
 import { useCreateVendorMutation, useDeleteVendorMutation, useUpdateVendorMutation } from '@/hooks/useVendorMutations'
 import { mapApiBillToStore } from '@/utils/mapApiBillToStore'
@@ -19,6 +20,7 @@ type VendorRow = {
 }
 
 export default function VendorsPage() {
+  const { t } = useTranslation()
   const vendorsQuery = useWorkspaceVendorsQuery()
   const billsQuery = useWorkspaceBillsQuery()
   const createVendor = useCreateVendorMutation()
@@ -88,7 +90,7 @@ export default function VendorsPage() {
     const terms = Number(paymentTerms)
 
     if (!trimmedName || !trimmedEmail || Number.isNaN(terms) || terms <= 0) {
-      setError('Name, email and valid payment terms are required.')
+      setError(t('vendors.error.required'))
       return
     }
 
@@ -104,7 +106,7 @@ export default function VendorsPage() {
       }
       onCloseModal()
     } catch {
-      setError('Could not save vendor. Try again.')
+      setError(t('vendors.error.saveFailed'))
     }
   }
 
@@ -118,38 +120,49 @@ export default function VendorsPage() {
     }
   }
 
-  const columns = [
-    { key: 'name', label: 'Vendor Name', sortable: true },
-    { key: 'email', label: 'Email', sortable: true },
-    { key: 'paymentTerms', label: 'Payment Terms', render: (row: VendorRow) => `${row.paymentTerms} days` },
-    { key: 'outstanding', label: 'Outstanding Balance', render: (row: VendorRow) => `$${row.outstanding.toLocaleString()}` },
-    { key: 'billsCount', label: 'Bills Count', sortable: true },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (row: VendorRow) => (
-        <div className="flex gap-2">
-          <Button variant="secondary" size="sm" onClick={() => openEditModal(row)}>
-            Edit
-          </Button>
-          <button
-            type="button"
-            onClick={() => setVendorToDelete(row)}
-            className="vendor-delete-btn rounded-lg border border-[var(--color-border)] p-1.5 text-slate-500 transition hover:border-red-500 hover:bg-red-50 hover:text-red-600"
-            aria-label={`Delete ${row.name}`}
-            title="Delete vendor"
-          >
-            <Trash2 size={15} />
-          </button>
-        </div>
-      ),
-    },
-  ]
+  const columns = useMemo(
+    () => [
+      { key: 'name', label: t('vendors.table.name'), sortable: true },
+      { key: 'email', label: t('vendors.table.email'), sortable: true },
+      {
+        key: 'paymentTerms',
+        label: t('vendors.table.paymentTerms'),
+        render: (row: VendorRow) => t('vendors.table.termsDays', { count: row.paymentTerms }),
+      },
+      {
+        key: 'outstanding',
+        label: t('vendors.table.outstanding'),
+        render: (row: VendorRow) => `$${row.outstanding.toLocaleString()}`,
+      },
+      { key: 'billsCount', label: t('vendors.table.billsCount'), sortable: true },
+      {
+        key: 'actions',
+        label: t('vendors.table.actions'),
+        render: (row: VendorRow) => (
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={() => openEditModal(row)}>
+              {t('vendors.action.edit')}
+            </Button>
+            <button
+              type="button"
+              onClick={() => setVendorToDelete(row)}
+              className="vendor-delete-btn rounded-lg border border-[var(--color-border)] p-1.5 text-slate-500 transition hover:border-red-500 hover:bg-red-50 hover:text-red-600"
+              aria-label={t('vendors.action.deleteAria', { name: row.name })}
+              title={t('vendors.action.deleteTitle')}
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [t],
+  )
 
   return (
     <div>
       <div className="mb-4 flex justify-end">
-        <Button onClick={openCreateModal}>New Vendor</Button>
+        <Button onClick={openCreateModal}>{t('vendors.newVendor')}</Button>
       </div>
       {tableLoading ? (
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4">
@@ -159,38 +172,38 @@ export default function VendorsPage() {
         <DataTable columns={columns} data={rows} rowKey={(row) => row.id} />
       )}
       <Modal
-        title={editingVendorId ? 'Edit vendor' : 'New vendor'}
+        title={editingVendorId ? t('vendors.modal.editTitle') : t('vendors.modal.newTitle')}
         isOpen={isModalOpen}
         onClose={onCloseModal}
       >
         <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
           <label className="block text-sm">
-            <span className="mb-1 block font-medium text-slate-700">Vendor name</span>
+            <span className="mb-1 block font-medium text-slate-700">{t('vendors.form.vendorName')}</span>
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="e.g. Acme Supplies"
+              placeholder={t('vendors.form.vendorNamePlaceholder')}
               autoComplete="organization"
               className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block font-medium text-slate-700">Email</span>
+            <span className="mb-1 block font-medium text-slate-700">{t('vendors.form.email')}</span>
             <input
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="billing@vendor.com"
+              placeholder={t('vendors.form.emailPlaceholder')}
               type="email"
               autoComplete="email"
               className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block font-medium text-slate-700">Payment terms (days)</span>
+            <span className="mb-1 block font-medium text-slate-700">{t('vendors.form.paymentTerms')}</span>
             <input
               value={paymentTerms}
               onChange={(event) => setPaymentTerms(event.target.value)}
-              placeholder="30"
+              placeholder={t('vendors.form.paymentTermsPlaceholder')}
               type="number"
               min={1}
               className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
@@ -199,23 +212,21 @@ export default function VendorsPage() {
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex items-center justify-end gap-2 pt-1">
             <Button type="button" variant="secondary" onClick={onCloseModal}>
-              Cancel
+              {t('vendors.form.cancel')}
             </Button>
             <Button type="submit" disabled={createVendor.isPending || updateVendor.isPending}>
-              {editingVendorId ? 'Save changes' : 'Create vendor'}
+              {editingVendorId ? t('vendors.form.save') : t('vendors.form.create')}
             </Button>
           </div>
         </form>
       </Modal>
       <ConfirmDialog
         isOpen={Boolean(vendorToDelete)}
-        title="Delete vendor"
+        title={t('vendors.delete.title')}
         description={
-          vendorToDelete
-            ? `Are you sure you want to delete ${vendorToDelete.name}? Vendors with bills cannot be deleted.`
-            : ''
+          vendorToDelete ? t('vendors.delete.description', { name: vendorToDelete.name }) : ''
         }
-        confirmLabel="Delete vendor"
+        confirmLabel={t('vendors.delete.confirm')}
         onCancel={() => setVendorToDelete(null)}
         onConfirm={() => void onConfirmDelete()}
       />

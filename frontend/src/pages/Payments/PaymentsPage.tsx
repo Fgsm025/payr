@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import DataTable from '../../components/ui/DataTable'
 import Button from '../../components/ui/Button'
 import TableSkeleton from '../../components/ui/TableSkeleton'
+import { useTranslation } from '../../i18n/useI18n'
 import { usePaymentsQuery, useWorkspaceVendorsQuery } from '@/hooks/useWorkspaceQueries'
 import { formatApiPaymentMethod } from '@/lib/paymentMethodLabel'
 
@@ -15,6 +16,7 @@ type PaymentRow = {
 }
 
 export default function PaymentsPage() {
+  const { t } = useTranslation()
   const paymentsQuery = usePaymentsQuery()
   const vendorsQuery = useWorkspaceVendorsQuery()
   const vendors = vendorsQuery.data ?? []
@@ -48,21 +50,30 @@ export default function PaymentsPage() {
     [fromDate, rows, toDate, vendorFilter],
   )
 
-  const columns = [
-    { key: 'paymentDate', label: 'Payment Date', sortable: true },
-    { key: 'vendor', label: 'Vendor', sortable: true },
-    {
-      key: 'amount',
-      label: 'Amount',
-      sortable: true,
-      render: (row: PaymentRow) => `$${row.amount.toLocaleString()}`,
-    },
-    { key: 'paymentMethod', label: 'Payment Method' },
-    { key: 'reference', label: 'Reference #' },
-  ]
+  const columns = useMemo(
+    () => [
+      { key: 'paymentDate', label: t('payments.table.paymentDate'), sortable: true },
+      { key: 'vendor', label: t('payments.table.vendor'), sortable: true },
+      {
+        key: 'amount',
+        label: t('payments.table.amount'),
+        sortable: true,
+        render: (row: PaymentRow) => `$${row.amount.toLocaleString()}`,
+      },
+      { key: 'paymentMethod', label: t('payments.table.paymentMethod') },
+      { key: 'reference', label: t('payments.table.reference') },
+    ],
+    [t],
+  )
 
   const onExport = () => {
-    const header = ['Payment Date', 'Vendor', 'Amount', 'Payment Method', 'Reference #']
+    const header = [
+      t('payments.csv.paymentDate'),
+      t('payments.csv.vendor'),
+      t('payments.csv.amount'),
+      t('payments.csv.paymentMethod'),
+      t('payments.csv.reference'),
+    ]
     const lines = filteredRows.map((row) => [
       row.paymentDate,
       row.vendor,
@@ -79,7 +90,8 @@ export default function PaymentsPage() {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `payments-history-${new Date().toISOString().slice(0, 10)}.csv`
+    const dateStr = new Date().toISOString().slice(0, 10)
+    link.download = t('payments.export.filename', { date: dateStr })
     link.click()
     URL.revokeObjectURL(url)
   }
@@ -89,13 +101,13 @@ export default function PaymentsPage() {
       <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5">
         <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.2fr)_minmax(170px,0.8fr)_minmax(170px,0.8fr)_auto]">
           <label className="text-sm">
-            <span className="mb-1 block text-slate-600">Vendor</span>
+            <span className="mb-1 block text-slate-600">{t('payments.filters.vendor')}</span>
             <select
               value={vendorFilter}
               onChange={(event) => setVendorFilter(event.target.value)}
               className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2"
             >
-              <option value="">All vendors</option>
+              <option value="">{t('payments.filters.allVendors')}</option>
               {vendors.map((vendor) => (
                 <option key={vendor.id} value={vendor.name}>
                   {vendor.name}
@@ -104,7 +116,7 @@ export default function PaymentsPage() {
             </select>
           </label>
           <label className="text-sm">
-            <span className="mb-1 block text-slate-600">From</span>
+            <span className="mb-1 block text-slate-600">{t('payments.filters.from')}</span>
             <input
               type="date"
               value={fromDate}
@@ -113,7 +125,7 @@ export default function PaymentsPage() {
             />
           </label>
           <label className="text-sm">
-            <span className="mb-1 block text-slate-600">To</span>
+            <span className="mb-1 block text-slate-600">{t('payments.filters.to')}</span>
             <input
               type="date"
               value={toDate}
@@ -122,7 +134,7 @@ export default function PaymentsPage() {
             />
           </label>
           <Button variant="secondary" onClick={onExport} disabled={!filteredRows.length} className="self-end">
-            Export CSV
+            {t('payments.exportCsv')}
           </Button>
         </div>
       </div>

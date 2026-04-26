@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Bill, BillStatus, Vendor } from '../data/mockData'
-import type { Locale } from '../i18n/translations'
+import { detectBrowserLocale, type Locale } from '../i18n/translations'
 import { API_BASE_URL } from '@/lib/apiBaseUrl'
 import { queryClient } from '@/lib/queryClient'
 import { workspaceQk } from '@/lib/workspaceQueryKeys'
@@ -355,7 +355,7 @@ export const useAppStore = create<AppState>()(
 
       theme: 'light',
       toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
-      locale: 'en',
+      locale: detectBrowserLocale(),
       setLocale: (locale) => set({ locale }),
 
       isCreateBillModalOpen: false,
@@ -428,7 +428,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'billpay-store',
-      version: 3,
+      version: 4,
       migrate: (persisted, fromVersion) => {
         if (!persisted || typeof persisted !== 'object') return persisted
         const raw = { ...(persisted as Record<string, unknown>) }
@@ -442,6 +442,11 @@ export const useAppStore = create<AppState>()(
         }
         if (v < 3 && Array.isArray(raw.legalEntities)) {
           raw.legalEntities = syncCompanyXFromSeed(raw.legalEntities as LegalEntity[])
+        }
+        if (v < 4) {
+          const loc = raw.locale
+          raw.locale =
+            loc === 'en' || loc === 'es' ? loc : detectBrowserLocale()
         }
         return raw
       },

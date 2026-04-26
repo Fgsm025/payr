@@ -1,5 +1,6 @@
 import { Mail } from 'lucide-react'
 import Modal from '../ui/Modal'
+import { useTranslation } from '../../i18n/useI18n'
 
 type HelpSupportModalProps = Readonly<{
   isOpen: boolean
@@ -8,18 +9,12 @@ type HelpSupportModalProps = Readonly<{
 }>
 
 export default function HelpSupportModal({ isOpen, onClose, title }: HelpSupportModalProps) {
+  const { t } = useTranslation()
   return (
     <Modal title={title} isOpen={isOpen} onClose={onClose}>
       <div className="space-y-4 text-sm text-slate-600">
-        <p>
-          Payr helps you manage bills, vendors, approvals, and payments in one workspace. If something
-          does not look right—especially after AI invoice extraction—double-check the extracted fields
-          before submitting.
-        </p>
-        <p>
-          For account access, workspace setup, or payment issues, contact our team and include your
-          company name and a short description of what you were trying to do.
-        </p>
+        <p>{t('help.p1')}</p>
+        <p>{t('help.p2')}</p>
         <a
           href="mailto:support@payr.co"
           className="flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-slate-50 px-4 py-3 font-medium text-[var(--color-primary)] transition hover:bg-slate-100"
@@ -27,7 +22,7 @@ export default function HelpSupportModal({ isOpen, onClose, title }: HelpSupport
           <Mail size={18} className="shrink-0" />
           support@payr.co
         </a>
-        <p className="text-xs text-slate-500">We typically respond within one business day.</p>
+        <p className="text-xs text-slate-500">{t('help.responseNote')}</p>
       </div>
     </Modal>
   )

@@ -8,16 +8,11 @@ import BillsTable from './BillsTable'
 import CreateBillModal from './CreateBillModal'
 import ConfirmPaymentModal from './ConfirmPaymentModal'
 import TableSkeleton from '../../components/ui/TableSkeleton'
+import { useTranslation } from '../../i18n/useI18n'
 import { useWorkspaceBillsQuery, useWorkspaceVendorsQuery } from '@/hooks/useWorkspaceQueries'
 import { mapApiBillToStore } from '@/utils/mapApiBillToStore'
 
-const tabConfig = [
-  { label: 'Drafts', value: 'drafts' },
-  { label: 'For Approval', value: 'for_approval' },
-  { label: 'For Payment', value: 'for_payment' },
-  { label: 'History', value: 'history' },
-  { label: 'Archived', value: 'archived' },
-]
+const TAB_VALUES = ['drafts', 'for_approval', 'for_payment', 'history', 'archived'] as const
 
 const tabStatuses: Record<string, Bill['status'][]> = {
   drafts: ['draft'],
@@ -28,6 +23,7 @@ const tabStatuses: Record<string, Bill['status'][]> = {
 }
 
 export default function BillsPage() {
+  const { t } = useTranslation()
   const billsQuery = useWorkspaceBillsQuery()
   const vendorsQuery = useWorkspaceVendorsQuery()
   const bills = useMemo(() => (billsQuery.data ?? []).map((raw) => mapApiBillToStore(raw)), [billsQuery.data])
@@ -41,44 +37,71 @@ export default function BillsPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const initialTab = searchParams.get('tab')
-  const isValidInitialTab = initialTab && tabConfig.some((tab) => tab.value === initialTab)
+  const isValidInitialTab = initialTab && TAB_VALUES.includes(initialTab as (typeof TAB_VALUES)[number])
   const [activeTab, setActiveTab] = useState(isValidInitialTab ? initialTab : 'drafts')
   const [filters, setFilters] = useState({ search: '', vendorFilter: 'all', dateFrom: '', dateTo: '' })
   const [payingBill, setPayingBill] = useState<{ id: string; amount: number; dueDate: string } | null>(null)
+
+  const tabConfig = useMemo(
+    () => [
+      { label: t('bills.tab.drafts'), value: 'drafts' },
+      { label: t('bills.tab.forApproval'), value: 'for_approval' },
+      { label: t('bills.tab.forPayment'), value: 'for_payment' },
+      { label: t('bills.tab.history'), value: 'history' },
+      { label: t('bills.tab.archived'), value: 'archived' },
+    ],
+    [t],
+  )
 
   const vendorById = useMemo(
     () => Object.fromEntries(vendors.map((vendor) => [vendor.id, vendor])),
     [vendors],
   )
 
+  const unknownVendor = t('dashboard.unknownVendor')
   const filtered = useMemo(
     () =>
       bills
         .filter((bill) => tabStatuses[activeTab].includes(bill.status))
         .map((bill) => {
           const overdue = new Date(bill.dueDate) < new Date() && bill.status !== 'paid'
-          return { ...bill, vendorName: vendorById[bill.vendorId]?.name || 'Unknown', displayStatus: overdue ? 'overdue' : bill.status }
+          return {
+            ...bill,
+            vendorName: vendorById[bill.vendorId]?.name || unknownVendor,
+            displayStatus: overdue ? 'overdue' : bill.status,
+          }
         })
         .filter((bill) => {
           const query = filters.search.toLowerCase()
-          const queryMatch = bill.vendorName.toLowerCase().includes(query) || bill.invoiceNumber.toLowerCase().includes(query)
+          const queryMatch =
+            bill.vendorName.toLowerCase().includes(query) || bill.invoiceNumber.toLowerCase().includes(query)
           const vendorMatch = filters.vendorFilter === 'all' || bill.vendorId === filters.vendorFilter
           const due = new Date(bill.dueDate)
           const fromMatch = !filters.dateFrom || due >= new Date(filters.dateFrom)
           const toMatch = !filters.dateTo || due <= new Date(filters.dateTo)
           return queryMatch && vendorMatch && fromMatch && toMatch
         }),
-    [activeTab, bills, filters, vendorById],
+    [activeTab, bills, filters, vendorById, unknownVendor],
   )
 
   const onFilterChange = (key: 'search' | 'vendorFilter' | 'dateFrom' | 'dateTo', value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }))
   }
 
-  const onConfirmPayment = async ({ paymentMethodId, scheduledDate }: { paymentMethodId: string; scheduledDate: string }) => {
+  const onConfirmPayment = async ({
+    paymentMethodId,
+    scheduledDate,
+  }: {
+    paymentMethodId: string
+    scheduledDate: string
+  }) => {
     if (!payingBill) return
     await new Promise((resolve) => globalThis.setTimeout(resolve, 1000))
-    await transitionBill(payingBill.id, 'pay', `Paid on ${scheduledDate} via ${paymentMethodId}`)
+    await transitionBill(
+      payingBill.id,
+      'pay',
+      t('bills.payComment', { date: scheduledDate, method: paymentMethodId }),
+    )
   }
 
   return (
@@ -103,7 +126,7 @@ export default function BillsPage() {
             </Button>
           ))}
         </div>
-        <Button onClick={openCreateBillModal}>New Bill</Button>
+        <Button onClick={openCreateBillModal}>{t('bills.newBill')}</Button>
       </div>
       <BillFilters {...filters} vendors={vendors} onChange={onFilterChange} />
       {tableLoading ? (

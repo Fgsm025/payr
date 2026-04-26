@@ -4,6 +4,9 @@ import Button from '../components/ui/Button'
 import StatusBadge from '../components/ui/StatusBadge'
 import type { Bill } from '../data/mockData'
 import TableSkeleton from '../components/ui/TableSkeleton'
+import type { Locale } from '../i18n/translations'
+import type { TranslateFn } from '../i18n/useI18n'
+import { useTranslation } from '../i18n/useI18n'
 import {
   useDashboardApAgingQuery,
   useDashboardSummaryQuery,
@@ -57,13 +60,17 @@ type AgingApiRow = {
   total: number
 }
 
-function getBuckets(bills: Bill[], vendorById: Record<string, { name: string }>): AgingRow[] {
+function getBuckets(
+  bills: Bill[],
+  vendorById: Record<string, { name: string }>,
+  unknownVendorLabel: string,
+): AgingRow[] {
   const unpaidBills = bills.filter((bill) => !['paid', 'rejected', 'archived'].includes(bill.status))
   const map: Record<string, AgingRow> = {}
   const today = startOfDay(new Date())
 
   unpaidBills.forEach((bill) => {
-    const vendorName = vendorById[bill.vendorId]?.name || 'Unknown'
+    const vendorName = vendorById[bill.vendorId]?.name || unknownVendorLabel
     const due = startOfDay(new Date(bill.dueDate))
     const diffDays = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24))
     if (!map[vendorName]) {
@@ -92,17 +99,26 @@ function mapApiAging(rows: AgingApiRow[]): AgingRow[] {
   }))
 }
 
-function paymentHeroSubtitle(bill: Bill | undefined, heroDays: number, heroOverdue: boolean) {
-  if (!bill) return 'No bill in approved or scheduled status'
+function paymentHeroSubtitle(
+  bill: Bill | undefined,
+  heroDays: number,
+  heroOverdue: boolean,
+  t: TranslateFn,
+) {
+  if (!bill) return t('dashboard.hero.noApprovedBill')
   if (heroOverdue) {
     const n = Math.abs(heroDays)
-    return `Was due ${bill.dueDate} · ${n} day${n === 1 ? '' : 's'} overdue`
+    return n === 1
+      ? t('dashboard.hero.wasDueOverdueOne', { date: bill.dueDate })
+      : t('dashboard.hero.wasDueOverdueMany', { date: bill.dueDate, count: n })
   }
-  if (heroDays === 0) return 'Due today'
-  return `Due in ${heroDays} day${heroDays === 1 ? '' : 's'}`
+  if (heroDays === 0) return t('dashboard.hero.dueToday')
+  return heroDays === 1
+    ? t('dashboard.hero.dueInOneDay')
+    : t('dashboard.hero.dueInManyDays', { count: heroDays })
 }
 
-function getCashOutByMonth(bills: Bill[]): CashOutRow[] {
+function getCashOutByMonth(bills: Bill[], locale: Locale): CashOutRow[] {
   const paid = bills.filter((bill) => bill.status === 'paid' && bill.paidDate)
   const map = new Map<string, number>()
 
@@ -114,13 +130,14 @@ function getCashOutByMonth(bills: Bill[]): CashOutRow[] {
 
   const now = new Date()
   const rows: CashOutRow[] = []
+  const monthLocale = locale === 'es' ? 'es' : 'en-US'
   for (let i = CASH_OUT_MONTHS - 1; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     const total = map.get(key) ?? 0
     rows.push({
       ymKey: key,
-      month: d.toLocaleString('en-US', { month: 'short' }),
+      month: d.toLocaleString(monthLocale, { month: 'short' }),
       total,
     })
   }
@@ -129,6 +146,7 @@ function getCashOutByMonth(bills: Bill[]): CashOutRow[] {
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const { t, locale } = useTranslation()
   const summaryQuery = useDashboardSummaryQuery()
   const apQuery = useDashboardApAgingQuery()
   const billsQuery = useWorkspaceBillsQuery()
@@ -161,9 +179,13 @@ export default function Dashboard() {
   const overdueCount = apiSummary?.overdue ?? fallbackOverdueCount
   const paidThisMonth = apiSummary?.paidThisMonth ?? fallbackPaidThisMonth
 
-  const agingRows = apQuery.data ? mapApiAging(apQuery.data) : getBuckets(bills, vendorById)
+  const unknownVendor = t('dashboard.unknownVendor')
+  const agingRows = useMemo(
+    () => (apQuery.data ? mapApiAging(apQuery.data) : getBuckets(bills, vendorById, unknownVendor)),
+    [apQuery.data, bills, vendorById, unknownVendor],
+  )
   const recentBills = [...bills].sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()).slice(0, 5)
-  const cashOutRows: CashOutRow[] = getCashOutByMonth(bills)
+  const cashOutRows: CashOutRow[] = useMemo(() => getCashOutByMonth(bills, locale), [bills, locale])
   const maxCashOut = Math.max(...cashOutRows.map((row) => row.total), 1)
   const nextPaymentDue = [...bills]
     .filter((bill) => ['approved', 'scheduled'].includes(bill.status))
@@ -192,36 +214,38 @@ export default function Dashboard() {
       <section className="grid gap-4 xl:grid-cols-5">
         <div className="hero-card rounded-2xl border border-[var(--color-border)] bg-gradient-to-br from-[#f2fdff] via-[#e9fbff] to-[#d7f4fb] p-6 xl:col-span-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {heroOverdue ? 'Overdue payment' : 'Your next payment due'}
+            {heroOverdue ? t('dashboard.hero.overduePayment') : t('dashboard.hero.nextPaymentDue')}
           </p>
           <p className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">
             {currencyFormatter.format(nextPaymentDue?.amount ?? 0)}
           </p>
           <p className="mt-3 text-lg font-semibold text-slate-900">
-            {nextPaymentDue ? vendorById[nextPaymentDue.vendorId]?.name : 'No upcoming payment'}
+            {nextPaymentDue ? vendorById[nextPaymentDue.vendorId]?.name : t('dashboard.hero.noUpcomingPayment')}
           </p>
           <p className="mt-1 text-sm text-slate-600">
-            {paymentHeroSubtitle(nextPaymentDue, heroDays, heroOverdue)}
+            {paymentHeroSubtitle(nextPaymentDue, heroDays, heroOverdue, t)}
           </p>
           <div className="mt-6">
-            <Button onClick={() => navigate('/bills?tab=for_payment')}>Pay now</Button>
+            <Button onClick={() => navigate('/bills?tab=for_payment')}>{t('dashboard.hero.payNow')}</Button>
           </div>
         </div>
 
         <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5 xl:col-span-3">
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-base font-semibold text-slate-900">Bills requiring action</h3>
-            <span className="text-xs text-slate-500">{requiringAction.length} items</span>
+            <h3 className="text-base font-semibold text-slate-900">{t('dashboard.action.title')}</h3>
+            <span className="text-xs text-slate-500">
+              {t('dashboard.action.itemCount', { count: requiringAction.length })}
+            </span>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--color-border)] text-slate-500">
-                  <th className="px-3 py-2 text-left">Invoice</th>
-                  <th className="px-3 py-2 text-left">Vendor</th>
-                  <th className="px-3 py-2 text-left">Due</th>
-                  <th className="px-3 py-2 text-left">Status</th>
-                  <th className="px-3 py-2 text-right">Amount</th>
+                  <th className="px-3 py-2 text-left">{t('dashboard.col.invoice')}</th>
+                  <th className="px-3 py-2 text-left">{t('dashboard.col.vendor')}</th>
+                  <th className="px-3 py-2 text-left">{t('dashboard.col.due')}</th>
+                  <th className="px-3 py-2 text-left">{t('dashboard.col.status')}</th>
+                  <th className="px-3 py-2 text-right">{t('dashboard.col.amount')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -258,24 +282,24 @@ export default function Dashboard() {
         ) : (
           <>
             <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4">
-              <p className="text-xs text-slate-500">Total Payable</p>
+              <p className="text-xs text-slate-500">{t('dashboard.kpi.totalPayable')}</p>
               <p className="mt-2 text-3xl font-semibold text-slate-900">{currencyFormatter.format(totalPayable)}</p>
-              <p className="mt-2 text-xs text-slate-400">Open obligations</p>
+              <p className="mt-2 text-xs text-slate-400">{t('dashboard.kpi.openObligations')}</p>
             </div>
             <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4">
-              <p className="text-xs text-slate-500">Pending Approval</p>
+              <p className="text-xs text-slate-500">{t('dashboard.kpi.pendingApproval')}</p>
               <p className="mt-2 text-3xl font-semibold text-slate-900">{pendingApprovalCount}</p>
-              <p className="mt-2 text-xs text-slate-400">Needs approval action</p>
+              <p className="mt-2 text-xs text-slate-400">{t('dashboard.kpi.needsApproval')}</p>
             </div>
             <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4">
-              <p className="text-xs text-slate-500">Overdue Bills</p>
+              <p className="text-xs text-slate-500">{t('dashboard.kpi.overdueBills')}</p>
               <p className="mt-2 text-3xl font-semibold text-slate-900">{overdueCount}</p>
-              <p className="mt-2 text-xs text-red-500">High priority follow-up</p>
+              <p className="mt-2 text-xs text-red-500">{t('dashboard.kpi.highPriority')}</p>
             </div>
             <div className="paid-month-card rounded-2xl border border-[var(--color-border)] bg-gradient-to-r from-[#effaff] to-[#dbf5fc] p-4">
-              <p className="text-xs text-slate-500">Paid This Month</p>
+              <p className="text-xs text-slate-500">{t('dashboard.kpi.paidThisMonth')}</p>
               <p className="mt-2 text-3xl font-semibold text-slate-900">{currencyFormatter.format(paidThisMonth)}</p>
-              <p className="mt-2 text-xs text-slate-500">Great payment cadence</p>
+              <p className="mt-2 text-xs text-slate-500">{t('dashboard.kpi.greatCadence')}</p>
             </div>
           </>
         )}
@@ -283,8 +307,8 @@ export default function Dashboard() {
 
       <section className="rounded-2xl border border-[var(--color-border)] bg-white p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">Cash Out (Monthly)</h3>
-          <span className="text-xs text-slate-500">Paid bills only</span>
+          <h3 className="text-lg font-semibold text-slate-900">{t('dashboard.cashOut.title')}</h3>
+          <span className="text-xs text-slate-500">{t('dashboard.cashOut.subtitle')}</span>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
           {cashOutRows.map((row) => {
@@ -311,7 +335,7 @@ export default function Dashboard() {
           apQuery.isFetching && apQuery.data ? 'opacity-60 transition-opacity duration-200' : ''
         }`}
       >
-        <h3 className="mb-3 text-lg font-semibold text-slate-900">AP Aging</h3>
+        <h3 className="mb-3 text-lg font-semibold text-slate-900">{t('dashboard.apAging.title')}</h3>
         {apInitialLoad ? (
           <TableSkeleton rows={5} cols={7} />
         ) : (
@@ -319,13 +343,13 @@ export default function Dashboard() {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--color-border)] text-slate-500">
-                  <th className="px-3 py-2 text-left">Vendor</th>
-                  <th className="px-3 py-2 text-right">Current</th>
-                  <th className="px-3 py-2 text-right">0-30</th>
-                  <th className="px-3 py-2 text-right">31-60</th>
-                  <th className="px-3 py-2 text-right">61-90</th>
-                  <th className="px-3 py-2 text-right">90+</th>
-                  <th className="px-3 py-2 text-right">Total</th>
+                  <th className="px-3 py-2 text-left">{t('dashboard.apAging.vendor')}</th>
+                  <th className="px-3 py-2 text-right">{t('dashboard.apAging.current')}</th>
+                  <th className="px-3 py-2 text-right">{t('dashboard.apAging.b0_30')}</th>
+                  <th className="px-3 py-2 text-right">{t('dashboard.apAging.b31_60')}</th>
+                  <th className="px-3 py-2 text-right">{t('dashboard.apAging.b61_90')}</th>
+                  <th className="px-3 py-2 text-right">{t('dashboard.apAging.b90')}</th>
+                  <th className="px-3 py-2 text-right">{t('dashboard.apAging.total')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -347,15 +371,15 @@ export default function Dashboard() {
       </section>
 
       <section className="rounded-2xl border border-[var(--color-border)] bg-white p-4">
-        <h3 className="mb-3 text-lg font-semibold text-slate-900">Recent Bills</h3>
+        <h3 className="mb-3 text-lg font-semibold text-slate-900">{t('dashboard.recent.title')}</h3>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--color-border)] text-slate-500">
-                <th className="px-3 py-2 text-left">Vendor</th>
-                <th className="px-3 py-2 text-left">Status</th>
-                <th className="px-3 py-2 text-left">Date</th>
-                <th className="px-3 py-2 text-right">Amount</th>
+                <th className="px-3 py-2 text-left">{t('dashboard.recent.vendor')}</th>
+                <th className="px-3 py-2 text-left">{t('dashboard.recent.status')}</th>
+                <th className="px-3 py-2 text-left">{t('dashboard.recent.date')}</th>
+                <th className="px-3 py-2 text-right">{t('dashboard.recent.amount')}</th>
               </tr>
             </thead>
             <tbody>
