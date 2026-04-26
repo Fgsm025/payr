@@ -19,25 +19,42 @@ export class DashboardService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async getSummary() {
-    const bills = await this.billsService.findAll();
+  async getSummary(entityId: string) {
+    const bills = await this.billsService.findAll(entityId);
     const closed = new Set(['paid', 'rejected', 'archived']);
+
+    const startOfDay = (d: Date) => {
+      const x = new Date(d);
+      x.setHours(0, 0, 0, 0);
+      return x;
+    };
+    const today = startOfDay(new Date());
 
     const totalPayable = bills
       .filter((bill) => !closed.has(bill.status))
       .reduce((sum, bill) => sum + bill.totalAmount, 0);
 
-    const now = new Date();
-    const overdue = bills.filter(
-      (bill) => !closed.has(bill.status) && new Date(bill.dueDate) < now,
-    ).length;
+    const overdue = bills.filter((bill) => {
+      if (closed.has(bill.status)) return false;
+      const due = startOfDay(new Date(bill.dueDate));
+      return due < today;
+    }).length;
 
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const endOfMonth = new Date(
+      today.getFullYear(),
+      today.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
 
     const paidAgg = await this.prisma.payment.aggregate({
       where: {
         paymentDate: { gte: startOfMonth, lte: endOfMonth },
+        bill: { entityId },
       },
       _sum: { amount: true },
     });
@@ -50,8 +67,8 @@ export class DashboardService {
     };
   }
 
-  async getApAging(): Promise<ApAgingRowDto[]> {
-    const bills = await this.billsService.findAll();
+  async getApAging(entityId: string): Promise<ApAgingRowDto[]> {
+    const bills = await this.billsService.findAll(entityId);
     const excluded = ['paid', 'archived', 'rejected'];
     const unpaid = bills.filter((b) => !excluded.includes(b.status));
 

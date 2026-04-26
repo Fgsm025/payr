@@ -10,7 +10,7 @@ const currencies = ['USD', 'ARS', 'UYU', 'CLP', 'BRL']
 export default function SettingsPage() {
   const authUser = useAppStore((state) => state.authUser)
   const legalEntities = useAppStore((state) => state.legalEntities)
-  const selectedEntityId = useAppStore((state) => state.selectedEntityId)
+  const activeWorkspaceId = useAppStore((state) => state.activeWorkspaceId)
   const addLegalEntity = useAppStore((state) => state.addLegalEntity)
   const updateAuthProfile = useAppStore((state) => state.updateAuthProfile)
   const setDefaultLegalEntity = useAppStore(
@@ -276,7 +276,7 @@ export default function SettingsPage() {
             <div
               key={entity.id}
               className={`flex items-center justify-between rounded-xl border px-3 py-2 ${
-                entity.id === selectedEntityId
+                entity.id === activeWorkspaceId
                   ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
                   : 'border-[var(--color-border)] bg-slate-50'
               }`}
@@ -290,7 +290,7 @@ export default function SettingsPage() {
                 </p>
               </div>
               <div className='flex items-center gap-2'>
-                {entity.id === selectedEntityId && (
+                {entity.id === activeWorkspaceId && (
                   <span className='rounded-full bg-[var(--color-primary)]/15 px-2 py-0.5 text-xs font-semibold text-[var(--color-primary)]'>
                     Active
                   </span>

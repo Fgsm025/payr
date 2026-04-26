@@ -1,8 +1,10 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { bills as initialBills, vendors as initialVendors, type Bill, type BillStatus, type Vendor } from '../data/mockData'
+import type { Bill, BillStatus, Vendor } from '../data/mockData'
 import type { Locale } from '../i18n/translations'
-import { mapApiBillToStore, type ApiBillPayload } from '../utils/mapApiBillToStore'
+import { API_BASE_URL } from '@/lib/apiBaseUrl'
+import { queryClient } from '@/lib/queryClient'
+import { workspaceQk } from '@/lib/workspaceQueryKeys'
 
 type BillAction = 'submit' | 'approve' | 'reject' | 'pay' | 'archive'
 
@@ -30,6 +32,17 @@ type PaymentMethod = {
   expiry: string
 }
 
+function workspaceHeaders(token: string, workspaceId: string): HeadersInit {
+  return {
+    Authorization: `Bearer ${token}`,
+    'X-Entity-Id': workspaceId,
+  }
+}
+
+function invalidateWorkspaceQueries(workspaceId: string) {
+  void queryClient.invalidateQueries({ queryKey: ['workspace', workspaceId] })
+}
+
 type AppState = {
   vendors: Vendor[]
   addVendor: (input: { name: string; email: string; paymentTerms: number }) => void
@@ -37,13 +50,11 @@ type AppState = {
   deleteVendor: (vendorId: string) => void
   bills: Bill[]
   addBill: (input: Omit<Bill, 'id' | 'status' | 'history'>) => void
-  addBillFromApi: (raw: ApiBillPayload) => void
-  syncBillsFromApi: () => Promise<void>
   transitionBill: (billId: string, action: BillAction, comment?: string) => Promise<void>
 
   legalEntities: LegalEntity[]
-  selectedEntityId: string
-  setSelectedEntityId: (id: string) => void
+  activeWorkspaceId: string
+  setActiveWorkspaceId: (id: string) => void
   addLegalEntity: (input: { name: string; taxId: string; country: string; baseCurrency: string }) => void
   setDefaultLegalEntity: (id: string) => void
   deleteLegalEntity: (id: string) => void
@@ -77,7 +88,7 @@ type AppState = {
   bootstrapAuth: () => void
 }
 
-let autoLogoutTimer: number | null = null
+let autoLogoutTimer: ReturnType<typeof globalThis.setTimeout> | null = null
 
 function scheduleAutoLogout(expMillis: number | null, logoutFn: () => void) {
   if (autoLogoutTimer) {
@@ -96,7 +107,7 @@ function scheduleAutoLogout(expMillis: number | null, logoutFn: () => void) {
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      vendors: initialVendors,
+      vendors: [] as Vendor[],
       addVendor: (input) =>
         set((state) => {
           const vendor: Vendor = {
@@ -124,7 +135,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           vendors: state.vendors.filter((vendor) => vendor.id !== vendorId),
         })),
-      bills: initialBills,
+      bills: [] as Bill[],
       addBill: (input) =>
         set((state) => {
           const nextId = `bill-${state.bills.length + 1}`
@@ -136,39 +147,6 @@ export const useAppStore = create<AppState>()(
           }
           return { bills: [bill, ...state.bills] }
         }),
-      addBillFromApi: (raw) =>
-        set((state) => {
-          const bill = mapApiBillToStore(raw)
-          const exists = state.bills.some((b) => b.id === bill.id)
-          if (exists) {
-            return { bills: state.bills.map((b) => (b.id === bill.id ? bill : b)) }
-          }
-          return { bills: [bill, ...state.bills] }
-        }),
-      syncBillsFromApi: async () => {
-        const { authToken, logout } = get()
-        if (!authToken) return
-        const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
-        try {
-          const response = await fetch(`${apiBase}/bills`, {
-            headers: { Authorization: `Bearer ${authToken}` },
-          })
-          if (response.status === 401) {
-            logout()
-            return
-          }
-          if (!response.ok) return
-          const list = (await response.json()) as ApiBillPayload[]
-          set((state) => {
-            const mapped = list.map((item) => mapApiBillToStore(item))
-            const apiIds = new Set(mapped.map((b) => b.id))
-            const kept = state.bills.filter((b) => !apiIds.has(b.id))
-            return { bills: [...mapped, ...kept] }
-          })
-        } catch {
-          /* keep local state */
-        }
-      },
       transitionBill: async (billId, action, comment) => {
         const transitionMap: Record<BillStatus, Partial<Record<BillAction, BillStatus>>> = {
           draft: { submit: 'pending_approval', archive: 'archived' },
@@ -180,15 +158,14 @@ export const useAppStore = create<AppState>()(
           archived: {},
         }
 
-        const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
-        const { authToken, logout } = get()
+        const { authToken, logout, activeWorkspaceId } = get()
         if (authToken) {
           try {
-            const response = await fetch(`${apiBase}/bills/${billId}/status`, {
+            const response = await fetch(`${API_BASE_URL}/bills/${billId}/status`, {
               method: 'PATCH',
               headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${authToken}`,
+                ...workspaceHeaders(authToken, activeWorkspaceId),
               },
               body: JSON.stringify({ action, comment }),
             })
@@ -197,10 +174,7 @@ export const useAppStore = create<AppState>()(
               return
             }
             if (response.ok) {
-              const updated = (await response.json()) as ApiBillPayload
-              set((state) => ({
-                bills: state.bills.map((b) => (b.id === billId ? mapApiBillToStore(updated) : b)),
-              }))
+              invalidateWorkspaceQueries(activeWorkspaceId)
               return
             }
           } catch {
@@ -253,8 +227,8 @@ export const useAppStore = create<AppState>()(
           isDefault: false,
         },
       ],
-      selectedEntityId: 'xyz-ar',
-      setSelectedEntityId: (id) => set({ selectedEntityId: id }),
+      activeWorkspaceId: 'xyz-ar',
+      setActiveWorkspaceId: (id) => set({ activeWorkspaceId: id }),
       addLegalEntity: (input) =>
         set((state) => {
           const trimmed = input.name.trim()
@@ -298,11 +272,11 @@ export const useAppStore = create<AppState>()(
               }))
 
           const nextSelectedId =
-            state.selectedEntityId === id ? legalEntities[0]?.id ?? state.selectedEntityId : state.selectedEntityId
+            state.activeWorkspaceId === id ? legalEntities[0]?.id ?? state.activeWorkspaceId : state.activeWorkspaceId
 
           return {
             legalEntities,
-            selectedEntityId: nextSelectedId,
+            activeWorkspaceId: nextSelectedId,
           }
         }),
 
@@ -372,8 +346,7 @@ export const useAppStore = create<AppState>()(
       authExpiresAt: null,
       login: async ({ email, password }) => {
         try {
-          const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
-          const response = await fetch(`${apiBase}/auth/login`, {
+          const response = await fetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
@@ -412,6 +385,7 @@ export const useAppStore = create<AppState>()(
           globalThis.clearTimeout(autoLogoutTimer)
           autoLogoutTimer = null
         }
+        queryClient.removeQueries({ queryKey: workspaceQk.all })
         set({
           isAuthenticated: false,
           authToken: null,
@@ -432,8 +406,19 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'billpay-store',
+      version: 1,
+      migrate: (persisted, version) => {
+        if (version < 1 && persisted && typeof persisted === 'object') {
+          const p = persisted as { activeWorkspaceId?: string; selectedEntityId?: string }
+          return {
+            ...persisted,
+            activeWorkspaceId: p.activeWorkspaceId ?? p.selectedEntityId ?? 'xyz-ar',
+          }
+        }
+        return persisted
+      },
       partialize: (state) => ({
-        selectedEntityId: state.selectedEntityId,
+        activeWorkspaceId: state.activeWorkspaceId,
         legalEntities: state.legalEntities,
         paymentMethods: state.paymentMethods,
         theme: state.theme,

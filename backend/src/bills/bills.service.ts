@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { BillStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from '../payments/payments.service';
@@ -24,35 +24,44 @@ export class BillsService {
     archived: {},
   };
 
-  findAll() {
+  findAll(entityId: string) {
     return this.prisma.bill.findMany({
+      where: { entityId },
       include: { vendor: true, lineItems: true, history: { orderBy: { createdAt: 'asc' } } },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  findOne(id: string) {
-    return this.prisma.bill.findUnique({
-      where: { id },
+  findOne(entityId: string, id: string) {
+    return this.prisma.bill.findFirst({
+      where: { id, entityId },
       include: { vendor: true, lineItems: true, history: { orderBy: { createdAt: 'asc' } } },
     });
   }
 
-  async create(input: {
-    vendorId?: string;
-    vendorName?: string;
-    invoiceNumber: string;
-    invoiceDate: string;
-    dueDate: string;
-    amount: number;
-    currency?: string;
-    notes?: string;
-    line_items?: Array<{ description: string; amount: number; category: string }>;
-  }) {
+  async create(
+    entityId: string,
+    input: {
+      vendorId?: string;
+      vendorName?: string;
+      invoiceNumber: string;
+      invoiceDate: string;
+      dueDate: string;
+      amount: number;
+      currency?: string;
+      notes?: string;
+      line_items?: Array<{ description: string; amount: number; category: string }>;
+    },
+  ) {
     let vendorId = input.vendorId;
 
+    if (vendorId) {
+      const v = await this.prisma.vendor.findFirst({ where: { id: vendorId, entityId } });
+      if (!v) throw new BadRequestException('Vendor not found for this entity');
+    }
+
     if (!vendorId && input.vendorName) {
-      const vendor = await this.vendorsService.findOrCreateByName(input.vendorName);
+      const vendor = await this.vendorsService.findOrCreateByName(input.vendorName, entityId);
       vendorId = vendor.id;
     }
 
@@ -62,6 +71,7 @@ export class BillsService {
 
     const bill = await this.prisma.bill.create({
       data: {
+        entityId,
         vendorId,
         invoiceNumber: input.invoiceNumber,
         invoiceDate: new Date(input.invoiceDate),
@@ -90,9 +100,9 @@ export class BillsService {
     return bill;
   }
 
-  async transitionStatus(id: string, input: { action: BillAction; comment?: string }) {
-    const bill = await this.prisma.bill.findUnique({ where: { id } });
-    if (!bill) throw new BadRequestException('Bill not found');
+  async transitionStatus(entityId: string, id: string, input: { action: BillAction; comment?: string }) {
+    const bill = await this.prisma.bill.findFirst({ where: { id, entityId } });
+    if (!bill) throw new NotFoundException('Bill not found');
 
     const nextStatus = this.transitionMap[bill.status]?.[input.action];
     if (!nextStatus) {
@@ -123,10 +133,10 @@ export class BillsService {
     return updated;
   }
 
-  transitionFromPatch(id: string, status: BillStatus) {
+  transitionFromPatch(entityId: string, id: string, status: BillStatus) {
     if (status !== 'pending_approval') {
       throw new BadRequestException('Only pending_approval patch is supported');
     }
-    return this.transitionStatus(id, { action: 'submit' });
+    return this.transitionStatus(entityId, id, { action: 'submit' });
   }
 }

@@ -4,6 +4,9 @@ import { CloudUpload, FileText, Loader2 } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Modal from '../../components/ui/Modal'
 import { useAppStore } from '../../store/useAppStore'
+import { API_BASE_URL } from '@/lib/apiBaseUrl'
+import { queryClient } from '@/lib/queryClient'
+import { useWorkspaceVendorsQuery } from '@/hooks/useWorkspaceQueries'
 
 type Step = 'upload' | 'extracting' | 'form'
 type LineItem = { description: string; amount: string }
@@ -31,11 +34,11 @@ function normalizeVendorName(value: string) {
 }
 
 export default function CreateBillModal({ isOpen, onClose, onCreated }: CreateBillModalProps) {
-  const vendors = useAppStore((state) => state.vendors)
-  const addBillFromApi = useAppStore((state) => state.addBillFromApi)
+  const vendorsQuery = useWorkspaceVendorsQuery()
+  const vendors = vendorsQuery.data ?? []
   const authToken = useAppStore((state) => state.authToken)
+  const activeWorkspaceId = useAppStore((state) => state.activeWorkspaceId)
   const logout = useAppStore((state) => state.logout)
-  const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
 
   const [step, setStep] = useState<Step>('upload')
   const [error, setError] = useState('')
@@ -88,9 +91,11 @@ export default function CreateBillModal({ isOpen, onClose, onCreated }: CreateBi
     try {
       const body = new FormData()
       body.append('file', file)
-      const response = await fetch(`${apiBaseUrl}/bills/extract`, {
+      const response = await fetch(`${API_BASE_URL}/bills/extract`, {
         method: 'POST',
-        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+        headers: authToken
+          ? { Authorization: `Bearer ${authToken}`, 'X-Entity-Id': activeWorkspaceId }
+          : {},
         body,
       })
 
@@ -183,11 +188,13 @@ export default function CreateBillModal({ isOpen, onClose, onCreated }: CreateBi
     setError('')
 
     try {
-      const response = await fetch(`${apiBaseUrl}/bills`, {
+      const response = await fetch(`${API_BASE_URL}/bills`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+          ...(authToken
+            ? { Authorization: `Bearer ${authToken}`, 'X-Entity-Id': activeWorkspaceId }
+            : {}),
         },
         body: JSON.stringify({
           vendorId: form.vendorId,
@@ -213,8 +220,8 @@ export default function CreateBillModal({ isOpen, onClose, onCreated }: CreateBi
       }
       if (!response.ok) throw new Error('Failed to create bill')
 
-      const created = await response.json()
-      addBillFromApi(created)
+      await response.json()
+      await queryClient.invalidateQueries({ queryKey: ['workspace', activeWorkspaceId] })
 
       setIsSubmitting(false)
       onCreated?.()

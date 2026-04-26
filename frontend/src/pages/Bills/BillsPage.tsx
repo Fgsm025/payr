@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { Bill } from '../../data/mockData'
 import { useAppStore } from '../../store/useAppStore'
@@ -7,6 +7,9 @@ import BillFilters from './BillFilters'
 import BillsTable from './BillsTable'
 import CreateBillModal from './CreateBillModal'
 import ConfirmPaymentModal from './ConfirmPaymentModal'
+import TableSkeleton from '../../components/ui/TableSkeleton'
+import { useWorkspaceBillsQuery, useWorkspaceVendorsQuery } from '@/hooks/useWorkspaceQueries'
+import { mapApiBillToStore } from '@/utils/mapApiBillToStore'
 
 const tabConfig = [
   { label: 'Drafts', value: 'drafts' },
@@ -25,12 +28,13 @@ const tabStatuses: Record<string, Bill['status'][]> = {
 }
 
 export default function BillsPage() {
-  const bills = useAppStore((state) => state.bills)
-  const vendors = useAppStore((state) => state.vendors)
+  const billsQuery = useWorkspaceBillsQuery()
+  const vendorsQuery = useWorkspaceVendorsQuery()
+  const bills = useMemo(() => (billsQuery.data ?? []).map((raw) => mapApiBillToStore(raw)), [billsQuery.data])
+  const vendors = vendorsQuery.data ?? []
+  const tableLoading = billsQuery.isPending && !billsQuery.data
   const paymentMethods = useAppStore((state) => state.paymentMethods)
   const transitionBill = useAppStore((state) => state.transitionBill)
-  const syncBillsFromApi = useAppStore((state) => state.syncBillsFromApi)
-  const authToken = useAppStore((state) => state.authToken)
   const isCreateBillModalOpen = useAppStore((state) => state.isCreateBillModalOpen)
   const openCreateBillModal = useAppStore((state) => state.openCreateBillModal)
   const closeCreateBillModal = useAppStore((state) => state.closeCreateBillModal)
@@ -41,10 +45,6 @@ export default function BillsPage() {
   const [activeTab, setActiveTab] = useState(isValidInitialTab ? initialTab : 'drafts')
   const [filters, setFilters] = useState({ search: '', vendorFilter: 'all', dateFrom: '', dateTo: '' })
   const [payingBill, setPayingBill] = useState<{ id: string; amount: number; dueDate: string } | null>(null)
-
-  useEffect(() => {
-    if (authToken) void syncBillsFromApi()
-  }, [authToken, syncBillsFromApi])
 
   const vendorById = useMemo(
     () => Object.fromEntries(vendors.map((vendor) => [vendor.id, vendor])),
@@ -106,13 +106,25 @@ export default function BillsPage() {
         <Button onClick={openCreateBillModal}>New Bill</Button>
       </div>
       <BillFilters {...filters} vendors={vendors} onChange={onFilterChange} />
-      <BillsTable
-        bills={filtered}
-        activeTab={activeTab}
-        onAction={(billId, action) => transitionBill(billId, action)}
-        onView={(billId) => navigate(`/bills/${billId}`)}
-        onPayRequest={(bill) => setPayingBill({ id: bill.id, amount: bill.amount, dueDate: bill.dueDate })}
-      />
+      {tableLoading ? (
+        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4">
+          <TableSkeleton rows={10} cols={6} />
+        </div>
+      ) : (
+        <div
+          className={
+            billsQuery.isFetching && billsQuery.data ? 'opacity-60 transition-opacity duration-200' : ''
+          }
+        >
+          <BillsTable
+            bills={filtered}
+            activeTab={activeTab}
+            onAction={(billId, action) => void transitionBill(billId, action)}
+            onView={(billId) => navigate(`/bills/${billId}`)}
+            onPayRequest={(bill) => setPayingBill({ id: bill.id, amount: bill.amount, dueDate: bill.dueDate })}
+          />
+        </div>
+      )}
       <CreateBillModal
         isOpen={isCreateBillModalOpen}
         onClose={closeCreateBillModal}

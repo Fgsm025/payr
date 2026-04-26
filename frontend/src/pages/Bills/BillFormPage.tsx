@@ -1,7 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../../components/ui/Button'
 import { useAppStore } from '../../store/useAppStore'
+import { API_BASE_URL } from '@/lib/apiBaseUrl'
+import { queryClient } from '@/lib/queryClient'
+import { useWorkspaceVendorsQuery } from '@/hooks/useWorkspaceQueries'
 
 type LineItem = { description: string; amount: string; category: string }
 
@@ -14,8 +17,11 @@ function suggestInvoiceNumber() {
 }
 
 export default function BillFormPage() {
-  const vendors = useAppStore((state) => state.vendors)
-  const addBill = useAppStore((state) => state.addBill)
+  const vendorsQuery = useWorkspaceVendorsQuery()
+  const vendors = vendorsQuery.data ?? []
+  const authToken = useAppStore((state) => state.authToken)
+  const activeWorkspaceId = useAppStore((state) => state.activeWorkspaceId)
+  const logout = useAppStore((state) => state.logout)
   const navigate = useNavigate()
 
   const [vendorId, setVendorId] = useState(vendors[0]?.id ?? '')
@@ -26,6 +32,7 @@ export default function BillFormPage() {
   const [notes, setNotes] = useState('')
   const [lineItems, setLineItems] = useState<LineItem[]>([{ description: '', amount: '', category: '' }])
   const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const parsedAmount = useMemo(() => Number(amount), [amount])
 
@@ -37,29 +44,57 @@ export default function BillFormPage() {
     setLineItems((prev) => prev.map((item, i) => (i === index ? { ...item, [key]: value } : item)))
   }
 
-  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!vendorId || !invoiceNumber || !dueDate || !parsedAmount) {
       setError('Vendor, invoice number, due date and amount are required.')
       return
     }
 
-    addBill({
-      vendorId,
-      invoiceNumber,
-      invoiceDate,
-      dueDate,
-      amount: parsedAmount,
-      notes,
-      lineItems: lineItems
-        .filter((item) => item.description || item.amount || item.category)
-        .map((item) => ({
-          description: item.description,
-          amount: Number(item.amount || 0),
-          category: item.category || 'General',
-        })),
-    })
-    navigate('/bills', { replace: true })
+    if (!authToken) {
+      setError('Sign in to create a bill.')
+      return
+    }
+
+    setIsSubmitting(true)
+    setError('')
+    try {
+      const response = await fetch(`${API_BASE_URL}/bills`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+          'X-Entity-Id': activeWorkspaceId,
+        },
+        body: JSON.stringify({
+          vendorId,
+          invoiceNumber,
+          invoiceDate,
+          dueDate,
+          amount: parsedAmount,
+          currency: 'USD',
+          notes,
+          line_items: lineItems
+            .filter((item) => item.description || item.amount || item.category)
+            .map((item) => ({
+              description: item.description || 'Line item',
+              amount: Number(item.amount || 0),
+              category: item.category || 'General',
+            })),
+        }),
+      })
+      if (response.status === 401) {
+        logout()
+        return
+      }
+      if (!response.ok) throw new Error('Failed to create bill')
+      await queryClient.invalidateQueries({ queryKey: ['workspace', activeWorkspaceId] })
+      navigate('/bills', { replace: true })
+    } catch {
+      setError('Could not save bill. Check your connection.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -122,8 +157,12 @@ export default function BillFormPage() {
         {error && <p className="text-sm text-red-500">{error}</p>}
 
         <div className="flex items-center gap-2">
-          <Button type="submit">Save Draft</Button>
-          <Button variant="secondary" onClick={() => navigate('/bills')}>Cancel</Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Saving…' : 'Save Draft'}
+          </Button>
+          <Button variant="secondary" type="button" onClick={() => navigate('/bills')}>
+            Cancel
+          </Button>
         </div>
       </form>
     </div>

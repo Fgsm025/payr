@@ -1,8 +1,21 @@
-import { Body, Controller, Get, NotFoundException, Param, Patch, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  NotFoundException,
+  Param,
+  Patch,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { BillsService } from './bills.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { OcrService } from './ocr.service';
+import { requireEntityId } from '../common/require-entity-id';
 
 @UseGuards(JwtAuthGuard)
 @Controller('bills')
@@ -13,19 +26,20 @@ export class BillsController {
   ) {}
 
   @Get()
-  findAll() {
-    return this.billsService.findAll();
+  findAll(@Headers('x-entity-id') entityIdHeader: string) {
+    return this.billsService.findAll(requireEntityId(entityIdHeader));
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    const bill = await this.billsService.findOne(id);
+  async findOne(@Headers('x-entity-id') entityIdHeader: string, @Param('id') id: string) {
+    const bill = await this.billsService.findOne(requireEntityId(entityIdHeader), id);
     if (!bill) throw new NotFoundException('Bill not found');
     return bill;
   }
 
   @Post()
   create(
+    @Headers('x-entity-id') entityIdHeader: string,
     @Body()
     body: {
       vendorId?: string;
@@ -39,7 +53,7 @@ export class BillsController {
       line_items?: Array<{ description: string; amount: number; category: string }>;
     },
   ) {
-    return this.billsService.create(body);
+    return this.billsService.create(requireEntityId(entityIdHeader), body);
   }
 
   @Post('extract')
@@ -49,12 +63,17 @@ export class BillsController {
   }
 
   @Patch(':id')
-  patchStatus(@Param('id') id: string, @Body() body: { status: 'pending_approval' }) {
-    return this.billsService.transitionFromPatch(id, body.status);
+  patchStatus(
+    @Headers('x-entity-id') entityIdHeader: string,
+    @Param('id') id: string,
+    @Body() body: { status: 'pending_approval' },
+  ) {
+    return this.billsService.transitionFromPatch(requireEntityId(entityIdHeader), id, body.status);
   }
 
   @Patch(':id/status')
   updateStatus(
+    @Headers('x-entity-id') entityIdHeader: string,
     @Param('id') id: string,
     @Body()
     body: {
@@ -62,6 +81,6 @@ export class BillsController {
       comment?: string;
     },
   ) {
-    return this.billsService.transitionStatus(id, body);
+    return this.billsService.transitionStatus(requireEntityId(entityIdHeader), id, body);
   }
 }

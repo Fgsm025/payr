@@ -1,10 +1,12 @@
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Download } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import StatusBadge from '../../components/ui/StatusBadge'
 import { useAppStore } from '../../store/useAppStore'
 import type { Bill, BillStatus } from '../../data/mockData'
+import { useWorkspaceBillQuery, useWorkspaceVendorsQuery } from '@/hooks/useWorkspaceQueries'
+import { mapApiBillToStore } from '@/utils/mapApiBillToStore'
 
 const timelineLabel: Record<BillStatus, string> = {
   draft: 'Draft',
@@ -55,33 +57,44 @@ function buildTimeline(bill: Bill) {
   return unique
 }
 
+function BillDetailSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-sm md:p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 w-48 rounded-lg bg-slate-200" />
+          <div className="h-4 w-64 rounded bg-slate-100" />
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="h-28 rounded-xl bg-slate-100" />
+            <div className="h-28 rounded-xl bg-slate-100" />
+          </div>
+        </div>
+      </div>
+      <div className="h-40 rounded-2xl border border-[var(--color-border)] bg-white p-5 md:p-6">
+        <div className="animate-pulse space-y-3">
+          <div className="h-4 w-32 rounded bg-slate-200" />
+          <div className="h-3 w-full rounded bg-slate-100" />
+          <div className="h-3 w-full rounded bg-slate-100" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function BillDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const bill = useAppStore((state) => state.bills.find((item) => item.id === id))
-  const vendors = useAppStore((state) => state.vendors)
+  const billQuery = useWorkspaceBillQuery(id)
+  const vendorsQuery = useWorkspaceVendorsQuery()
+  const vendors = vendorsQuery.data ?? []
+  const bill = useMemo(() => (billQuery.data ? mapApiBillToStore(billQuery.data) : undefined), [billQuery.data])
   const transitionBill = useAppStore((state) => state.transitionBill)
-  const addBillFromApi = useAppStore((state) => state.addBillFromApi)
-  const authToken = useAppStore((state) => state.authToken)
-  const logout = useAppStore((state) => state.logout)
-  const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
-
-  useEffect(() => {
-    if (!id || !authToken) return
-    void (async () => {
-      const response = await fetch(`${apiBaseUrl}/bills/${id}`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      })
-      if (response.status === 401) {
-        logout()
-        return
-      }
-      if (response.ok) addBillFromApi(await response.json())
-    })()
-  }, [addBillFromApi, apiBaseUrl, authToken, id, logout])
 
   const timeline = useMemo(() => (bill ? buildTimeline(bill) : []), [bill])
 
+  if (!id) return <Navigate to="/bills" replace />
+  if (billQuery.isError) return <Navigate to="/bills" replace />
+  if (billQuery.isPending && !bill) return <BillDetailSkeleton />
   if (!bill) return <Navigate to="/bills" replace />
 
   const vendor = vendors.find((item) => item.id === bill.vendorId)
@@ -177,7 +190,9 @@ export default function BillDetailPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div
+      className={`space-y-4${billQuery.isFetching && billQuery.data ? ' opacity-60 transition-opacity duration-200' : ''}`}
+    >
       <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-sm md:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--color-border)] pb-4">
           <div>

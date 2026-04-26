@@ -34,18 +34,23 @@ model User {
 
 model Vendor {
   id           String   @id @default(cuid())
-  name         String   @unique
+  entityId     String   @default("xyz-ar")
+  name         String
   email        String
   paymentTerms Int      @default(30)
   bankAccount  String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   bills        Bill[]
+
+  @@unique([entityId, name])
+  @@index([entityId])
 }
 
 model Bill {
   id            String            @id @default(cuid())
-  invoiceNumber String            @unique
+  entityId      String            @default("xyz-ar")
+  invoiceNumber String
   vendorId      String
   vendor        Vendor            @relation(fields: [vendorId], references: [id])
   status        BillStatus        @default(draft)
@@ -59,6 +64,9 @@ model Bill {
   lineItems     BillLineItem[]
   payments      Payment[]
   history       BillStatusHistory[]
+
+  @@unique([entityId, invoiceNumber])
+  @@index([entityId])
 }
 
 model BillLineItem {

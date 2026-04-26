@@ -34,8 +34,8 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false)
   const logout = useAppStore((state) => state.logout)
   const legalEntities = useAppStore((state) => state.legalEntities)
-  const selectedEntityId = useAppStore((state) => state.selectedEntityId)
-  const setSelectedEntityId = useAppStore((state) => state.setSelectedEntityId)
+  const activeWorkspaceId = useAppStore((state) => state.activeWorkspaceId)
+  const setActiveWorkspaceId = useAppStore((state) => state.setActiveWorkspaceId)
   const { t } = useI18n()
   const navigate = useNavigate()
 
@@ -58,8 +58,8 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
           <div className='mt-3'>
             <div className='relative'>
               <select
-                value={selectedEntityId}
-                onChange={(event) => setSelectedEntityId(event.target.value)}
+                value={activeWorkspaceId}
+                onChange={(event) => setActiveWorkspaceId(event.target.value)}
                 className='w-full appearance-none rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 pr-8 text-xs font-medium text-slate-700 shadow-sm outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20'
               >
                 {legalEntities.map((entity) => (

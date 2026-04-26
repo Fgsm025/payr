@@ -4,7 +4,10 @@ import DataTable from '../../components/ui/DataTable'
 import Button from '../../components/ui/Button'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import Modal from '../../components/ui/Modal'
-import { useAppStore } from '../../store/useAppStore'
+import TableSkeleton from '../../components/ui/TableSkeleton'
+import { useWorkspaceBillsQuery, useWorkspaceVendorsQuery } from '@/hooks/useWorkspaceQueries'
+import { useCreateVendorMutation, useDeleteVendorMutation, useUpdateVendorMutation } from '@/hooks/useVendorMutations'
+import { mapApiBillToStore } from '@/utils/mapApiBillToStore'
 
 type VendorRow = {
   id: string
@@ -16,11 +19,20 @@ type VendorRow = {
 }
 
 export default function VendorsPage() {
-  const bills = useAppStore((state) => state.bills)
-  const vendors = useAppStore((state) => state.vendors)
-  const addVendor = useAppStore((state) => state.addVendor)
-  const updateVendor = useAppStore((state) => state.updateVendor)
-  const deleteVendor = useAppStore((state) => state.deleteVendor)
+  const vendorsQuery = useWorkspaceVendorsQuery()
+  const billsQuery = useWorkspaceBillsQuery()
+  const createVendor = useCreateVendorMutation()
+  const updateVendor = useUpdateVendorMutation()
+  const deleteVendor = useDeleteVendorMutation()
+
+  const vendors = vendorsQuery.data ?? []
+  const bills = useMemo(
+    () => (billsQuery.data ?? []).map((raw) => mapApiBillToStore(raw)),
+    [billsQuery.data],
+  )
+
+  const tableLoading = vendorsQuery.isPending && !vendorsQuery.data
+
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingVendorId, setEditingVendorId] = useState<string | null>(null)
   const [vendorToDelete, setVendorToDelete] = useState<VendorRow | null>(null)
@@ -69,7 +81,7 @@ export default function VendorsPage() {
     resetModal()
   }
 
-  const onSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
     const trimmedName = name.trim()
     const trimmedEmail = email.trim()
@@ -80,18 +92,30 @@ export default function VendorsPage() {
       return
     }
 
-    if (editingVendorId) {
-      updateVendor(editingVendorId, { name: trimmedName, email: trimmedEmail, paymentTerms: terms })
-    } else {
-      addVendor({ name: trimmedName, email: trimmedEmail, paymentTerms: terms })
+    setError('')
+    try {
+      if (editingVendorId) {
+        await updateVendor.mutateAsync({
+          id: editingVendorId,
+          body: { name: trimmedName, email: trimmedEmail, paymentTerms: terms },
+        })
+      } else {
+        await createVendor.mutateAsync({ name: trimmedName, email: trimmedEmail, paymentTerms: terms })
+      }
+      onCloseModal()
+    } catch {
+      setError('Could not save vendor. Try again.')
     }
-    onCloseModal()
   }
 
-  const onConfirmDelete = () => {
+  const onConfirmDelete = async () => {
     if (!vendorToDelete) return
-    deleteVendor(vendorToDelete.id)
-    setVendorToDelete(null)
+    try {
+      await deleteVendor.mutateAsync(vendorToDelete.id)
+      setVendorToDelete(null)
+    } catch {
+      setVendorToDelete(null)
+    }
   }
 
   const columns = [
@@ -127,40 +151,59 @@ export default function VendorsPage() {
       <div className="mb-4 flex justify-end">
         <Button onClick={openCreateModal}>New Vendor</Button>
       </div>
-      <DataTable columns={columns} data={rows} rowKey={(row) => row.id} />
+      {tableLoading ? (
+        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4">
+          <TableSkeleton rows={8} cols={6} />
+        </div>
+      ) : (
+        <DataTable columns={columns} data={rows} rowKey={(row) => row.id} />
+      )}
       <Modal
         title={editingVendorId ? 'Edit vendor' : 'New vendor'}
         isOpen={isModalOpen}
         onClose={onCloseModal}
       >
-        <form onSubmit={onSubmit} className="space-y-4">
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Vendor name"
-            className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
-          />
-          <input
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="Email"
-            type="email"
-            className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
-          />
-          <input
-            value={paymentTerms}
-            onChange={(event) => setPaymentTerms(event.target.value)}
-            placeholder="Payment terms (days)"
-            type="number"
-            min={1}
-            className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
-          />
+        <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Vendor name</span>
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="e.g. Acme Supplies"
+              autoComplete="organization"
+              className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Email</span>
+            <input
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="billing@vendor.com"
+              type="email"
+              autoComplete="email"
+              className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Payment terms (days)</span>
+            <input
+              value={paymentTerms}
+              onChange={(event) => setPaymentTerms(event.target.value)}
+              placeholder="30"
+              type="number"
+              min={1}
+              className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+            />
+          </label>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex items-center justify-end gap-2 pt-1">
             <Button type="button" variant="secondary" onClick={onCloseModal}>
               Cancel
             </Button>
-            <Button type="submit">{editingVendorId ? 'Save changes' : 'Create vendor'}</Button>
+            <Button type="submit" disabled={createVendor.isPending || updateVendor.isPending}>
+              {editingVendorId ? 'Save changes' : 'Create vendor'}
+            </Button>
           </div>
         </form>
       </Modal>
@@ -169,12 +212,12 @@ export default function VendorsPage() {
         title="Delete vendor"
         description={
           vendorToDelete
-            ? `Are you sure you want to delete ${vendorToDelete.name}? This action cannot be undone.`
+            ? `Are you sure you want to delete ${vendorToDelete.name}? Vendors with bills cannot be deleted.`
             : ''
         }
         confirmLabel="Delete vendor"
         onCancel={() => setVendorToDelete(null)}
-        onConfirm={onConfirmDelete}
+        onConfirm={() => void onConfirmDelete()}
       />
     </div>
   )

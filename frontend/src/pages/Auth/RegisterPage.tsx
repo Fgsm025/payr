@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Button from '../../components/ui/Button'
+import { API_BASE_URL } from '@/lib/apiBaseUrl'
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('')
@@ -8,14 +9,13 @@ export default function RegisterPage() {
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
-  const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setDone(false)
     setError('')
     try {
-      const response = await fetch(`${apiBaseUrl}/auth/register`, {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),

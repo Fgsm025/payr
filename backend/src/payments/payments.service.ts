@@ -5,8 +5,9 @@ import { PrismaService } from '../prisma/prisma.service';
 export class PaymentsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
+  findAll(entityId: string) {
     return this.prisma.payment.findMany({
+      where: { bill: { entityId } },
       include: { bill: { include: { vendor: true } } },
       orderBy: { createdAt: 'desc' },
     });

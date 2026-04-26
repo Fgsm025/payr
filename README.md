@@ -20,14 +20,13 @@ with a structured, auditable workflow.
 
 ## What was left out and why
 
-| Feature | Reason |
-|---|---|
-| Real payment processing (ACH/wire) | Requires banking integrations and compliance — v2 |
-| Multi-entity backend isolation | Data model has entity_id field ready; UI assumes single entity for MVP |
-| ERP sync (QuickBooks/NetSuite) | Integration complexity out of scope |
-| Bulk actions | Core single-bill flow validated first |
-| Role-based permissions | Assumed Admin user; role model is straightforward extension |
-| Recurring bills | Natural extension of bill model, not core to MVP |
+| Feature                            | Reason                                                      |
+| ---------------------------------- | ----------------------------------------------------------- |
+| Real payment processing (ACH/wire) | Requires banking integrations and compliance — v2           |
+| ERP sync (QuickBooks/NetSuite)     | Integration complexity out of scope                         |
+| Bulk actions                       | Core single-bill flow validated first                       |
+| Role-based permissions             | Assumed Admin user; role model is straightforward extension |
+| Recurring bills                    | Natural extension of bill model, not core to MVP            |
 
 ## Setup
 
@@ -75,3 +74,5 @@ Role-based access control is the natural next layer.
 
 **AI invoice extraction**: Uses OpenAI Vision API to parse PDF invoices and
 pre-fill bill fields. Falls back to manual entry if no API key is configured.
+
+**Multi-company workspaces**: Users can create multiple companies and switch between them via the sidebar selector. Designed for finance teams managing more than one legal entity.

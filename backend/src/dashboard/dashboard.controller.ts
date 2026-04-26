@@ -1,6 +1,7 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Headers, UseGuards } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { requireEntityId } from '../common/require-entity-id';
 
 @UseGuards(JwtAuthGuard)
 @Controller('dashboard')
@@ -8,12 +9,12 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('summary')
-  getSummary() {
-    return this.dashboardService.getSummary();
+  getSummary(@Headers('x-entity-id') entityIdHeader: string) {
+    return this.dashboardService.getSummary(requireEntityId(entityIdHeader));
   }
 
   @Get('ap-aging')
-  getApAging() {
-    return this.dashboardService.getApAging();
+  getApAging(@Headers('x-entity-id') entityIdHeader: string) {
+    return this.dashboardService.getApAging(requireEntityId(entityIdHeader));
   }
 }
