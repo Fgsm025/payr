@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { Bill } from '../../data/mockData'
 import { useAppStore } from '../../store/useAppStore'
@@ -29,6 +29,8 @@ export default function BillsPage() {
   const vendors = useAppStore((state) => state.vendors)
   const paymentMethods = useAppStore((state) => state.paymentMethods)
   const transitionBill = useAppStore((state) => state.transitionBill)
+  const syncBillsFromApi = useAppStore((state) => state.syncBillsFromApi)
+  const authToken = useAppStore((state) => state.authToken)
   const isCreateBillModalOpen = useAppStore((state) => state.isCreateBillModalOpen)
   const openCreateBillModal = useAppStore((state) => state.openCreateBillModal)
   const closeCreateBillModal = useAppStore((state) => state.closeCreateBillModal)
@@ -39,6 +41,10 @@ export default function BillsPage() {
   const [activeTab, setActiveTab] = useState(isValidInitialTab ? initialTab : 'drafts')
   const [filters, setFilters] = useState({ search: '', vendorFilter: 'all', dateFrom: '', dateTo: '' })
   const [payingBill, setPayingBill] = useState<{ id: string; amount: number; dueDate: string } | null>(null)
+
+  useEffect(() => {
+    if (authToken) void syncBillsFromApi()
+  }, [authToken, syncBillsFromApi])
 
   const vendorById = useMemo(
     () => Object.fromEntries(vendors.map((vendor) => [vendor.id, vendor])),
@@ -72,7 +78,7 @@ export default function BillsPage() {
   const onConfirmPayment = async ({ paymentMethodId, scheduledDate }: { paymentMethodId: string; scheduledDate: string }) => {
     if (!payingBill) return
     await new Promise((resolve) => globalThis.setTimeout(resolve, 1000))
-    transitionBill(payingBill.id, 'pay', `Paid on ${scheduledDate} via ${paymentMethodId}`)
+    await transitionBill(payingBill.id, 'pay', `Paid on ${scheduledDate} via ${paymentMethodId}`)
   }
 
   return (

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   Building2,
@@ -13,6 +14,8 @@ import {
 import { useAppStore } from '../../store/useAppStore'
 import Button from '../ui/Button'
 import { useI18n } from '../../i18n/useI18n'
+import HelpSupportModal from './HelpSupportModal'
+import PrivacyPolicyModal from './PrivacyPolicyModal'
 
 const navItems = [
   { to: '/dashboard', labelKey: 'nav.home', icon: LayoutDashboard },
@@ -27,6 +30,8 @@ type SidebarProps = Readonly<{
 }>
 
 export default function Sidebar({ onNavigate }: SidebarProps) {
+  const [isHelpOpen, setIsHelpOpen] = useState(false)
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false)
   const logout = useAppStore((state) => state.logout)
   const legalEntities = useAppStore((state) => state.legalEntities)
   const selectedEntityId = useAppStore((state) => state.selectedEntityId)
@@ -41,6 +46,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
   }
 
   return (
+    <>
     <aside className='sidebar-panel flex w-[250px] flex-col justify-between border-r border-[var(--color-border)] bg-[var(--color-sidebar)] p-5'>
       <div>
         <div className='mb-8 px-2'>
@@ -94,14 +100,18 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
       <div className='space-y-4'>
         <div className='space-y-1 text-sm text-[var(--color-sidebar-text)]'>
           <Button
+            type='button'
             variant='ghost'
             className='sidebar-footer-btn flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left'
+            onClick={() => setIsHelpOpen(true)}
           >
             <CircleHelp size={15} /> {t('nav.help')}
           </Button>
           <Button
+            type='button'
             variant='ghost'
             className='sidebar-footer-btn flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left'
+            onClick={() => setIsPrivacyOpen(true)}
           >
             <Shield size={15} /> {t('nav.privacy')}
           </Button>
@@ -125,5 +135,12 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
         </div>
       </div>
     </aside>
+    <HelpSupportModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} title={t('nav.help')} />
+    <PrivacyPolicyModal
+      isOpen={isPrivacyOpen}
+      onClose={() => setIsPrivacyOpen(false)}
+      title={t('nav.privacy')}
+    />
+    </>
   )
 }

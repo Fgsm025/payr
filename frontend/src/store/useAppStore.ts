@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { bills as initialBills, vendors as initialVendors, type Bill, type BillStatus, type Vendor } from '../data/mockData'
 import type { Locale } from '../i18n/translations'
+import { mapApiBillToStore, type ApiBillPayload } from '../utils/mapApiBillToStore'
 
 type BillAction = 'submit' | 'approve' | 'reject' | 'pay' | 'archive'
 
@@ -36,17 +37,9 @@ type AppState = {
   deleteVendor: (vendorId: string) => void
   bills: Bill[]
   addBill: (input: Omit<Bill, 'id' | 'status' | 'history'>) => void
-  addBillFromApi: (input: {
-    id: string
-    vendorId: string
-    invoiceNumber: string
-    invoiceDate: string
-    dueDate: string
-    amount: number
-    notes?: string
-    status: BillStatus
-  }) => void
-  transitionBill: (billId: string, action: BillAction, comment?: string) => void
+  addBillFromApi: (raw: ApiBillPayload) => void
+  syncBillsFromApi: () => Promise<void>
+  transitionBill: (billId: string, action: BillAction, comment?: string) => Promise<void>
 
   legalEntities: LegalEntity[]
   selectedEntityId: string
@@ -143,28 +136,79 @@ export const useAppStore = create<AppState>()(
           }
           return { bills: [bill, ...state.bills] }
         }),
-      addBillFromApi: (input) =>
+      addBillFromApi: (raw) =>
         set((state) => {
-          const exists = state.bills.some((bill) => bill.id === input.id)
-          if (exists) return { bills: state.bills }
-          const bill: Bill = {
-            ...input,
-            history: [{ status: input.status, date: new Date().toISOString() }],
+          const bill = mapApiBillToStore(raw)
+          const exists = state.bills.some((b) => b.id === bill.id)
+          if (exists) {
+            return { bills: state.bills.map((b) => (b.id === bill.id ? bill : b)) }
           }
           return { bills: [bill, ...state.bills] }
         }),
-      transitionBill: (billId, action, comment) =>
-        set((state) => {
-          const transitionMap: Record<BillStatus, Partial<Record<BillAction, BillStatus>>> = {
-            draft: { submit: 'pending_approval', archive: 'archived' },
-            pending_approval: { approve: 'approved', reject: 'rejected', archive: 'archived' },
-            approved: { pay: 'paid', archive: 'archived' },
-            scheduled: { pay: 'paid', archive: 'archived' },
-            paid: {},
-            rejected: {},
-            archived: {},
+      syncBillsFromApi: async () => {
+        const { authToken, logout } = get()
+        if (!authToken) return
+        const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
+        try {
+          const response = await fetch(`${apiBase}/bills`, {
+            headers: { Authorization: `Bearer ${authToken}` },
+          })
+          if (response.status === 401) {
+            logout()
+            return
           }
+          if (!response.ok) return
+          const list = (await response.json()) as ApiBillPayload[]
+          set((state) => {
+            const mapped = list.map((item) => mapApiBillToStore(item))
+            const apiIds = new Set(mapped.map((b) => b.id))
+            const kept = state.bills.filter((b) => !apiIds.has(b.id))
+            return { bills: [...mapped, ...kept] }
+          })
+        } catch {
+          /* keep local state */
+        }
+      },
+      transitionBill: async (billId, action, comment) => {
+        const transitionMap: Record<BillStatus, Partial<Record<BillAction, BillStatus>>> = {
+          draft: { submit: 'pending_approval', archive: 'archived' },
+          pending_approval: { approve: 'approved', reject: 'rejected', archive: 'archived' },
+          approved: { pay: 'paid', archive: 'archived' },
+          scheduled: { pay: 'paid', archive: 'archived' },
+          paid: {},
+          rejected: {},
+          archived: {},
+        }
 
+        const apiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
+        const { authToken, logout } = get()
+        if (authToken) {
+          try {
+            const response = await fetch(`${apiBase}/bills/${billId}/status`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${authToken}`,
+              },
+              body: JSON.stringify({ action, comment }),
+            })
+            if (response.status === 401) {
+              logout()
+              return
+            }
+            if (response.ok) {
+              const updated = (await response.json()) as ApiBillPayload
+              set((state) => ({
+                bills: state.bills.map((b) => (b.id === billId ? mapApiBillToStore(updated) : b)),
+              }))
+              return
+            }
+          } catch {
+            /* fall back to local transition */
+          }
+        }
+
+        set((state) => {
           const bills = state.bills.map((bill) => {
             if (bill.id !== billId) return bill
             const nextStatus = transitionMap[bill.status]?.[action]
@@ -174,13 +218,14 @@ export const useAppStore = create<AppState>()(
               status: nextStatus,
               paidDate: action === 'pay' ? new Date().toISOString().slice(0, 10) : bill.paidDate,
               history: [
-                ...(bill.history ?? [{ status: 'draft', date: bill.invoiceDate }]),
+                ...(bill.history ?? [{ status: 'draft' as const, date: bill.invoiceDate }]),
                 { status: nextStatus, date: new Date().toISOString(), comment },
               ],
             }
           })
           return { bills }
-        }),
+        })
+      },
 
       legalEntities: [
         {

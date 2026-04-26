@@ -35,7 +35,7 @@ export default function Button({
   return (
     <button
       type={type}
-      className={`rounded-xl transition ${variantClasses[variant]} ${sizeClasses[size]} ${fullWidth ? 'w-full' : ''} ${className}`}
+      className={`cursor-pointer rounded-xl transition disabled:cursor-not-allowed disabled:opacity-50 ${variantClasses[variant]} ${sizeClasses[size]} ${fullWidth ? 'w-full' : ''} ${className}`}
       {...props}
     />
   )

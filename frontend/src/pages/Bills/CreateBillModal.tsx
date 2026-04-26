@@ -214,16 +214,7 @@ export default function CreateBillModal({ isOpen, onClose, onCreated }: CreateBi
       if (!response.ok) throw new Error('Failed to create bill')
 
       const created = await response.json()
-      addBillFromApi({
-        id: created.id,
-        vendorId: created.vendorId,
-        invoiceNumber: created.invoiceNumber,
-        invoiceDate: created.invoiceDate?.slice?.(0, 10) ?? form.invoiceDate,
-        dueDate: created.dueDate?.slice?.(0, 10) ?? form.dueDate,
-        amount: created.totalAmount ?? Number(form.amount),
-        notes: created.notes,
-        status: created.status,
-      })
+      addBillFromApi(created)
 
       setIsSubmitting(false)
       onCreated?.()

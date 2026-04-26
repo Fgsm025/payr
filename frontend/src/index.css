@@ -85,6 +85,14 @@ button {
   background-color: #263446 !important;
 }
 
+[data-theme='dark'] .hover\:bg-slate-100:hover {
+  background-color: #1e293b !important;
+}
+
+[data-theme='dark'] .hover\:bg-slate-300:hover {
+  background-color: #334155 !important;
+}
+
 [data-theme='dark'] .text-slate-950,
 [data-theme='dark'] .text-slate-900,
 [data-theme='dark'] .text-slate-800 {

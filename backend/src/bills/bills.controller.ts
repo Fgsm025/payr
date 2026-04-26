@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Patch, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { BillsService } from './bills.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -15,6 +15,13 @@ export class BillsController {
   @Get()
   findAll() {
     return this.billsService.findAll();
+  }
+
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    const bill = await this.billsService.findOne(id);
+    if (!bill) throw new NotFoundException('Bill not found');
+    return bill;
   }
 
   @Post()

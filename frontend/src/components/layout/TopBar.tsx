@@ -48,11 +48,11 @@ export default function TopBar({ title, showNewBill, onOpenMobileMenu, subtitle 
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2 md:gap-3">
-        <div className="hidden items-center rounded-full border border-[var(--color-border)] bg-white p-0.5 sm:flex">
+        <div className="topbar-locale-switch hidden items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5 sm:flex">
           <button
             type="button"
             onClick={() => setLocale('es')}
-            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+            className={`cursor-pointer rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
               locale === 'es' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
             }`}
             aria-label={t('topbar.language.es')}
@@ -62,7 +62,7 @@ export default function TopBar({ title, showNewBill, onOpenMobileMenu, subtitle 
           <button
             type="button"
             onClick={() => setLocale('en')}
-            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+            className={`cursor-pointer rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
               locale === 'en' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
             }`}
             aria-label={t('topbar.language.en')}
@@ -82,7 +82,7 @@ export default function TopBar({ title, showNewBill, onOpenMobileMenu, subtitle 
         </Button>
         <Link
           to="/settings"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700 transition hover:bg-slate-300"
+          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700 transition hover:bg-slate-300"
           aria-label={t('topbar.account.settings')}
           title={t('topbar.account.settings')}
         >

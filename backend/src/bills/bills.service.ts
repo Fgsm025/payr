@@ -26,8 +26,15 @@ export class BillsService {
 
   findAll() {
     return this.prisma.bill.findMany({
-      include: { vendor: true, lineItems: true, history: true },
+      include: { vendor: true, lineItems: true, history: { orderBy: { createdAt: 'asc' } } },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  findOne(id: string) {
+    return this.prisma.bill.findUnique({
+      where: { id },
+      include: { vendor: true, lineItems: true, history: { orderBy: { createdAt: 'asc' } } },
     });
   }
 
