@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -69,7 +73,9 @@ export class AuthService {
   }
 
   async me(user: { sub: string; email: string; role: string }) {
-    const dbUser = await this.prisma.user.findUnique({ where: { id: user.sub } });
+    const dbUser = await this.prisma.user.findUnique({
+      where: { id: user.sub },
+    });
     return {
       id: user.sub,
       email: user.email,

@@ -237,7 +237,35 @@ export default function Dashboard() {
               {t('dashboard.action.itemCount', { count: requiringAction.length })}
             </span>
           </div>
-          <div className="overflow-x-auto">
+          <div className="space-y-3 md:hidden">
+            {requiringAction.map((bill) => (
+              <article key={bill.id} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('dashboard.col.invoice')}</p>
+                    <p className="text-sm font-medium text-slate-800">{bill.invoiceNumber}</p>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('dashboard.col.vendor')}</p>
+                    <p className="text-right text-sm text-slate-700">{vendorById[bill.vendorId]?.name}</p>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('dashboard.col.due')}</p>
+                    <p className="text-sm text-slate-500">{bill.dueDate}</p>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('dashboard.col.status')}</p>
+                    <StatusBadge status={isOverdue(bill) ? 'overdue' : bill.status} />
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('dashboard.col.amount')}</p>
+                    <p className="text-sm font-semibold text-slate-900">{currencyFormatter.format(bill.amount)}</p>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--color-border)] text-slate-500">
@@ -339,7 +367,44 @@ export default function Dashboard() {
         {apInitialLoad ? (
           <TableSkeleton rows={5} cols={7} />
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            <div className="space-y-3 md:hidden">
+              {agingRows.map((row) => (
+                <article key={row.vendor} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('dashboard.apAging.vendor')}</p>
+                      <p className="text-right text-sm font-medium text-slate-800">{row.vendor}</p>
+                    </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('dashboard.apAging.current')}</p>
+                      <p className="text-sm text-slate-700">{currencyFormatter.format(row.current)}</p>
+                    </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('dashboard.apAging.b0_30')}</p>
+                      <p className="text-sm text-slate-700">{currencyFormatter.format(row.b0_30)}</p>
+                    </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('dashboard.apAging.b31_60')}</p>
+                      <p className="text-sm text-slate-700">{currencyFormatter.format(row.b31_60)}</p>
+                    </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('dashboard.apAging.b61_90')}</p>
+                      <p className="text-sm text-slate-700">{currencyFormatter.format(row.b61_90)}</p>
+                    </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('dashboard.apAging.b90')}</p>
+                      <p className="text-sm text-slate-700">{currencyFormatter.format(row.b90p)}</p>
+                    </div>
+                    <div className="flex items-start justify-between gap-3 border-t border-[var(--color-border)] pt-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('dashboard.apAging.total')}</p>
+                      <p className="text-sm font-semibold text-slate-900">{currencyFormatter.format(row.total)}</p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--color-border)] text-slate-500">
@@ -366,13 +431,38 @@ export default function Dashboard() {
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </section>
 
       <section className="rounded-2xl border border-[var(--color-border)] bg-white p-4">
         <h3 className="mb-3 text-lg font-semibold text-slate-900">{t('dashboard.recent.title')}</h3>
-        <div className="overflow-x-auto">
+        <div className="space-y-3 md:hidden">
+          {recentBills.map((bill) => (
+            <article key={bill.id} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+              <div className="space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('dashboard.recent.vendor')}</p>
+                  <p className="text-right text-sm text-slate-800">{vendorById[bill.vendorId]?.name}</p>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('dashboard.recent.status')}</p>
+                  <StatusBadge status={isOverdue(bill) ? 'overdue' : bill.status} />
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('dashboard.recent.date')}</p>
+                  <p className="text-sm text-slate-500">{bill.dueDate}</p>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('dashboard.recent.amount')}</p>
+                  <p className="text-sm font-semibold text-slate-900">{currencyFormatter.format(bill.amount)}</p>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+        <div className="hidden overflow-x-auto md:block">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--color-border)] text-slate-500">

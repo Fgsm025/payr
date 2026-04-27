@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { CloudUpload, FileText, Loader2 } from 'lucide-react'
 import Button from '../../components/ui/Button'
@@ -7,6 +7,7 @@ import { useAppStore } from '../../store/useAppStore'
 import { API_BASE_URL } from '@/lib/apiBaseUrl'
 import { queryClient } from '@/lib/queryClient'
 import { useWorkspaceVendorsQuery } from '@/hooks/useWorkspaceQueries'
+import { trackEvent } from '@/lib/analytics'
 
 type Step = 'upload' | 'extracting' | 'form'
 type LineItem = { description: string; amount: string }
@@ -55,6 +56,13 @@ export default function CreateBillModal({ isOpen, onClose, onCreated }: CreateBi
     notes: '',
   })
   const [lineItems, setLineItems] = useState<LineItem[]>([{ description: '', amount: '' }])
+  const hasVendors = vendors.length > 0
+
+  useEffect(() => {
+    const firstVendorId = vendors[0]?.id
+    if (step !== 'form' || form.vendorId || !firstVendorId) return
+    setForm((prev) => ({ ...prev, vendorId: firstVendorId }))
+  }, [form.vendorId, step, vendors])
 
   const requiredValid = useMemo(
     () => Boolean(form.vendorId && Number(form.amount) > 0 && form.dueDate),
@@ -114,7 +122,7 @@ export default function CreateBillModal({ isOpen, onClose, onCreated }: CreateBi
         vendors.find((v) => {
           const vendorName = normalizeVendorName(v.name)
           return vendorName === extractedVendor || vendorName.includes(extractedVendor) || extractedVendor.includes(vendorName)
-        })?.id ?? ''
+        })?.id ?? vendors[0]?.id ?? ''
 
       setIsManual(false)
       setForm((prev) => ({
@@ -126,6 +134,22 @@ export default function CreateBillModal({ isOpen, onClose, onCreated }: CreateBi
         invoiceDate: data.invoiceDate ? String(data.invoiceDate).slice(0, 10) : today,
         dueDate: data.dueDate ? String(data.dueDate).slice(0, 10) : '',
       }))
+      const extractedLineItems = Array.isArray(data.lineItems)
+        ? data.lineItems
+            .map((item: unknown) => {
+              if (!item || typeof item !== 'object') return null
+              const candidate = item as { description?: unknown; amount?: unknown }
+              if (typeof candidate.description !== 'string') return null
+              const numericAmount =
+                typeof candidate.amount === 'number'
+                  ? candidate.amount
+                  : Number(candidate.amount ?? Number.NaN)
+              if (Number.isNaN(numericAmount)) return null
+              return { description: candidate.description, amount: String(numericAmount) }
+            })
+            .filter((item): item is { description: string; amount: string } => item !== null)
+        : []
+      setLineItems(extractedLineItems.length > 0 ? extractedLineItems : [{ description: '', amount: '' }])
       setStep('form')
     } catch {
       setError('AI extraction failed. You can continue with manual entry.')
@@ -148,7 +172,7 @@ export default function CreateBillModal({ isOpen, onClose, onCreated }: CreateBi
   const onManualEntry = () => {
     setIsManual(true)
     setForm({
-      vendorId: '',
+      vendorId: vendors[0]?.id ?? '',
       invoiceNumber: '',
       amount: '',
       currency: 'USD',
@@ -220,7 +244,13 @@ export default function CreateBillModal({ isOpen, onClose, onCreated }: CreateBi
       }
       if (!response.ok) throw new Error('Failed to create bill')
 
-      await response.json()
+      const createdBill = await response.json()
+      trackEvent('bill_created', {
+        bill_id: createdBill?.id,
+        vendor_id: form.vendorId,
+        amount: Number(form.amount),
+        currency: form.currency,
+      })
       await queryClient.invalidateQueries({ queryKey: ['workspace', activeWorkspaceId] })
 
       setIsSubmitting(false)
@@ -283,8 +313,13 @@ export default function CreateBillModal({ isOpen, onClose, onCreated }: CreateBi
           <div className="grid gap-3 md:grid-cols-2">
             <label className="text-sm md:col-span-2">
               <span className="mb-1 block text-slate-600">Vendor</span>
-              <select value={form.vendorId} onChange={(e) => updateForm('vendorId', e.target.value)} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2">
-                <option value="">Select vendor</option>
+              <select
+                value={form.vendorId}
+                onChange={(e) => updateForm('vendorId', e.target.value)}
+                className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2"
+                disabled={!hasVendors}
+              >
+                <option value="">{hasVendors ? 'Select vendor' : 'No vendors available'}</option>
                 {vendors.map((vendor) => (
                   <option key={vendor.id} value={vendor.id}>
                     {vendor.name}

@@ -16,7 +16,15 @@ export async function fetchBillsApi(token: string, workspaceId: string): Promise
   return res.json() as Promise<ApiBillPayload[]>
 }
 
-export type ApiVendorPayload = { id: string; name: string; email: string; paymentTerms: number }
+export type ApiVendorPayload = {
+  id: string
+  name: string
+  email: string
+  taxId?: string | null
+  paymentTerms: number
+  defaultCurrency?: string | null
+  category?: string | null
+}
 
 export async function fetchVendorsApi(token: string, workspaceId: string): Promise<ApiVendorPayload[]> {
   const res = await fetch(`${API_BASE_URL}/vendors`, {

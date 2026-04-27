@@ -11,7 +11,14 @@ export function useCreateVendorMutation() {
   const logout = useAppStore((s) => s.logout)
 
   return useMutation({
-    mutationFn: async (body: { name: string; email: string; paymentTerms: number }) => {
+    mutationFn: async (body: {
+      name: string
+      email: string
+      taxId?: string
+      paymentTerms: number
+      defaultCurrency: string
+      category: string
+    }) => {
       if (!authToken) throw new Error('Not authenticated')
       const res = await fetch(`${API_BASE_URL}/vendors`, {
         method: 'POST',
@@ -43,7 +50,14 @@ export function useUpdateVendorMutation() {
       body,
     }: {
       id: string
-      body: { name: string; email: string; paymentTerms: number }
+      body: {
+        name: string
+        email: string
+        taxId?: string
+        paymentTerms: number
+        defaultCurrency: string
+        category: string
+      }
     }) => {
       if (!authToken) throw new Error('Not authenticated')
       const res = await fetch(`${API_BASE_URL}/vendors/${id}`, {

@@ -13,7 +13,11 @@ export class PaymentsService {
     });
   }
 
-  createPaymentForBill(input: { billId: string; amount: number; reference?: string }) {
+  createPaymentForBill(input: {
+    billId: string;
+    amount: number;
+    reference?: string;
+  }) {
     return this.prisma.payment.create({
       data: {
         billId: input.billId,

@@ -5,6 +5,7 @@ import { detectBrowserLocale, type Locale } from '../i18n/translations'
 import { API_BASE_URL } from '@/lib/apiBaseUrl'
 import { queryClient } from '@/lib/queryClient'
 import { workspaceQk } from '@/lib/workspaceQueryKeys'
+import { trackEvent } from '@/lib/analytics'
 
 export const DEFAULT_WORKSPACE_ID = 'company-x'
 
@@ -53,6 +54,13 @@ type PaymentMethod = {
   last4: string
   holderName: string
   expiry: string
+}
+
+const billEventByAction: Partial<Record<BillAction, 'bill_submitted' | 'bill_approved' | 'bill_rejected' | 'bill_paid'>> = {
+  submit: 'bill_submitted',
+  approve: 'bill_approved',
+  reject: 'bill_rejected',
+  pay: 'bill_paid',
 }
 
 function workspaceHeaders(token: string, workspaceId: string): HeadersInit {
@@ -250,6 +258,13 @@ export const useAppStore = create<AppState>()(
               return false
             }
             if (response.ok) {
+              const eventName = billEventByAction[action]
+              if (eventName) {
+                trackEvent(eventName, {
+                  bill_id: billId,
+                  workspace_id: activeWorkspaceId,
+                })
+              }
               invalidateWorkspaceQueries(activeWorkspaceId)
               const nextSnack = actionSnackCopy[action]
               get().showSnack(nextSnack.message, nextSnack.tone)
@@ -281,6 +296,13 @@ export const useAppStore = create<AppState>()(
           return { bills }
         })
         if (didChange) {
+          const eventName = billEventByAction[action]
+          if (eventName) {
+            trackEvent(eventName, {
+              bill_id: billId,
+              workspace_id: activeWorkspaceId,
+            })
+          }
           const nextSnack = actionSnackCopy[action]
           get().showSnack(nextSnack.message, nextSnack.tone)
         }
@@ -420,7 +442,7 @@ export const useAppStore = create<AppState>()(
           const expiresAt = Date.now() + Number(data.expiresIn ?? 0) * 1000
           const prev = get().authUser
           const authUser =
-            prev?.id === data.user.id && prev.avatarDataUrl
+            prev && prev.id === data.user.id && prev.avatarDataUrl
               ? { ...data.user, avatarDataUrl: prev.avatarDataUrl }
               : data.user
 

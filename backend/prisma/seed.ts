@@ -28,6 +28,7 @@ type SeedBillDef = {
   dueDate: Date;
   totalAmount: number;
   notes: string;
+  rejectionComment?: string;
   withPayment?: boolean;
   paymentMethod?: 'ach' | 'wire' | 'check';
   paymentDate?: Date;
@@ -35,10 +36,18 @@ type SeedBillDef = {
 
 type VendorSeed = { name: string; email: string; paymentTerms: number };
 
-async function addHistory(billId: string, chain: BillStatus[]) {
+async function addHistory(
+  billId: string,
+  chain: BillStatus[],
+  options?: { rejectionComment?: string },
+) {
   for (const status of chain) {
+    const comment =
+      status === 'rejected' && options?.rejectionComment
+        ? options.rejectionComment
+        : `Status: ${status}`;
     await prisma.billStatusHistory.create({
-      data: { billId, status, comment: `Status: ${status}` },
+      data: { billId, status, comment },
     });
   }
 }
@@ -108,7 +117,9 @@ async function seedEntity(entityId: string, vendorSeeds: VendorSeed[], defs: See
       ],
     });
 
-    await addHistory(bill.id, historyChainFor(def.status));
+    await addHistory(bill.id, historyChainFor(def.status), {
+      rejectionComment: def.rejectionComment,
+    });
 
     if (def.withPayment) {
       await prisma.payment.create({
@@ -297,7 +308,8 @@ async function main() {
       invoiceDate: new Date('2026-03-01'),
       dueDate: new Date('2026-04-01'),
       totalAmount: 3200,
-      notes: 'Workspace add-on invoice — rejected: missing PO (Notion).',
+      notes: 'Workspace add-on invoice for monthly team usage (Notion).',
+      rejectionComment: 'Missing PO (Notion).',
     },
     {
       invoiceNumber: 'INV-2026-013',
@@ -306,7 +318,8 @@ async function main() {
       invoiceDate: new Date('2026-03-18'),
       dueDate: new Date('2026-04-18'),
       totalAmount: 4100,
-      notes: 'Plugin marketplace charges — rejected: wrong cost center (Figma).',
+      notes: 'Plugin marketplace charges for design tools (Figma).',
+      rejectionComment: 'Wrong cost center (Figma).',
     },
     {
       invoiceNumber: 'INV-2026-014',

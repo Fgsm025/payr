@@ -61,7 +61,9 @@ export class DashboardService {
 
     return {
       totalPayable,
-      pendingApproval: bills.filter((bill) => bill.status === 'pending_approval').length,
+      pendingApproval: bills.filter(
+        (bill) => bill.status === 'pending_approval',
+      ).length,
       overdue,
       paidThisMonth: paidAgg._sum.amount ?? 0,
     };
@@ -114,6 +116,8 @@ export class DashboardService {
       row.total += amt;
     }
 
-    return Array.from(map.values()).sort((a, b) => a.vendor.localeCompare(b.vendor));
+    return Array.from(map.values()).sort((a, b) =>
+      a.vendor.localeCompare(b.vendor),
+    );
   }
 }

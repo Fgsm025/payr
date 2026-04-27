@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -17,7 +21,10 @@ export class VendorsService {
     input: {
       name: string;
       email: string;
+      taxId?: string;
       paymentTerms: number;
+      defaultCurrency?: string;
+      category?: string;
       bankAccount?: string;
     },
   ) {
@@ -32,19 +39,28 @@ export class VendorsService {
     input: Partial<{
       name: string;
       email: string;
+      taxId?: string;
       paymentTerms: number;
+      defaultCurrency?: string;
+      category?: string;
       bankAccount?: string;
     }>,
   ) {
-    const existing = await this.prisma.vendor.findFirst({ where: { id, entityId } });
+    const existing = await this.prisma.vendor.findFirst({
+      where: { id, entityId },
+    });
     if (!existing) throw new NotFoundException('Vendor not found');
     return this.prisma.vendor.update({ where: { id }, data: input });
   }
 
   async remove(entityId: string, id: string) {
-    const existing = await this.prisma.vendor.findFirst({ where: { id, entityId } });
+    const existing = await this.prisma.vendor.findFirst({
+      where: { id, entityId },
+    });
     if (!existing) throw new NotFoundException('Vendor not found');
-    const billCount = await this.prisma.bill.count({ where: { vendorId: id, entityId } });
+    const billCount = await this.prisma.bill.count({
+      where: { vendorId: id, entityId },
+    });
     if (billCount > 0) {
       throw new BadRequestException('Cannot delete vendor with existing bills');
     }
@@ -55,9 +71,19 @@ export class VendorsService {
     const normalized = name.trim();
     const all = await this.prisma.vendor.findMany({
       where: { entityId },
-      select: { id: true, name: true, email: true, paymentTerms: true, bankAccount: true, createdAt: true, updatedAt: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        paymentTerms: true,
+        bankAccount: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
-    const existing = all.find((vendor) => vendor.name.toLowerCase() === normalized.toLowerCase());
+    const existing = all.find(
+      (vendor) => vendor.name.toLowerCase() === normalized.toLowerCase(),
+    );
 
     if (existing) return existing;
 
@@ -65,7 +91,7 @@ export class VendorsService {
       data: {
         entityId,
         name: normalized,
-        email: `ap@${normalized.toLowerCase().replace(/\s+/g, '')}.com`,
+        email: `ap@${normalized.toLowerCase().replaceAll(/\s+/g, '')}.com`,
         paymentTerms: 30,
       },
     });

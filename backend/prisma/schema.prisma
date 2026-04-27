@@ -37,7 +37,10 @@ model Vendor {
   entityId     String   @default("company-x")
   name         String
   email        String
+  taxId        String?
   paymentTerms Int      @default(30)
+  defaultCurrency String @default("USD")
+  category     String   @default("Software")
   bankAccount  String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

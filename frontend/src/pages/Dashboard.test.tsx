@@ -81,6 +81,6 @@ describe('Dashboard', () => {
     await waitFor(() => {
       expect(screen.getByRole('columnheader', { name: 'Current' })).toBeInTheDocument()
     })
-    expect(screen.getByText('Acme Corp')).toBeInTheDocument()
+    expect(screen.getAllByText('Acme Corp').length).toBeGreaterThan(0)
   })
 })

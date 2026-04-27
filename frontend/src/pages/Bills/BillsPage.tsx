@@ -84,10 +84,11 @@ export default function BillsPage() {
         .filter((bill) => tabStatuses[activeTab].includes(bill.status))
         .map((bill) => {
           const overdue = new Date(bill.dueDate) < new Date() && bill.status !== 'paid'
+          const displayStatus: Bill['status'] | 'overdue' = overdue ? 'overdue' : bill.status
           return {
             ...bill,
             vendorName: vendorById[bill.vendorId]?.name || unknownVendor,
-            displayStatus: overdue ? 'overdue' : bill.status,
+            displayStatus,
             rejectionReason:
               bill.status === 'rejected'
                 ? [...(bill.history ?? [])]
@@ -108,8 +109,10 @@ export default function BillsPage() {
           return queryMatch && vendorMatch && fromMatch && toMatch
         })
         .sort((a, b) => {
-          const aLast = a.history?.at(-1)?.date ?? a.dueDate
-          const bLast = b.history?.at(-1)?.date ?? b.dueDate
+          const aLastEntry = a.history && a.history.length > 0 ? a.history[a.history.length - 1] : undefined
+          const bLastEntry = b.history && b.history.length > 0 ? b.history[b.history.length - 1] : undefined
+          const aLast = aLastEntry?.date ?? a.dueDate
+          const bLast = bLastEntry?.date ?? b.dueDate
           return new Date(bLast).getTime() - new Date(aLast).getTime()
         }),
     [activeTab, bills, filters, vendorById, unknownVendor],

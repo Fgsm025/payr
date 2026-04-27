@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
-import { CheckCircle2, Download } from 'lucide-react'
+import { Download } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Modal from '../../components/ui/Modal'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import ConfirmPaymentModal from './ConfirmPaymentModal'
 import StatusBadge from '../../components/ui/StatusBadge'
 import { useAppStore } from '../../store/useAppStore'
@@ -93,9 +94,9 @@ export default function BillDetailPage() {
   const paymentMethods = useAppStore((state) => state.paymentMethods)
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false)
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false)
+  const [isSubmitConfirmOpen, setIsSubmitConfirmOpen] = useState(false)
   const [rejectComment, setRejectComment] = useState('')
   const [isPayModalOpen, setIsPayModalOpen] = useState(false)
-  const [isSubmitSuccessOpen, setIsSubmitSuccessOpen] = useState(false)
 
   const timeline = useMemo(() => (bill ? buildTimeline(bill) : []), [bill])
 
@@ -111,15 +112,15 @@ export default function BillDetailPage() {
   const onSubmitForApproval = async () => {
     const ok = await transitionBill(bill.id, 'submit')
     if (ok) {
-      setIsSubmitSuccessOpen(true)
+      navigate('/bills?tab=drafts', { replace: true })
     }
   }
 
   const actionButtons = {
     draft: (
       <>
-        <Button variant="success" onClick={() => void onSubmitForApproval()}>
-          {hasRejectedHistory ? 'Resubmit for Approval' : 'Submit for Approval'}
+        <Button variant="success" onClick={() => setIsSubmitConfirmOpen(true)}>
+          {hasRejectedHistory ? t('bills.submit.confirm.resubmitCta') : t('bills.submit.confirm.submitCta')}
         </Button>
         <Button variant="secondary" onClick={() => navigate(`/bills/${bill.id}/edit`)}>
           {t('bills.action.edit')}
@@ -153,8 +154,8 @@ export default function BillDetailPage() {
     ),
     rejected: (
       <>
-        <Button variant="success" onClick={() => void onSubmitForApproval()}>
-          Submit for Approval
+        <Button variant="success" onClick={() => setIsSubmitConfirmOpen(true)}>
+          {t('bills.submit.confirm.submitCta')}
         </Button>
         <Button variant="secondary" onClick={() => navigate(`/bills/${bill.id}/edit`)}>
           {t('bills.action.edit')}
@@ -174,43 +175,109 @@ export default function BillDetailPage() {
   const onDownloadPdf = async () => {
     const { jsPDF } = await import('jspdf')
     const doc = new jsPDF()
-    let y = 16
-    doc.setFontSize(16)
-    doc.text(bill.invoiceNumber, 14, y)
-    y += 8
+    const pageW = doc.internal.pageSize.getWidth()
+    const pageH = doc.internal.pageSize.getHeight()
+    const primary = [59, 130, 246] as const
+    const slate900 = [15, 23, 42] as const
+    const slate700 = [51, 65, 85] as const
+    const slate500 = [100, 116, 139] as const
+    const lineColor = [226, 232, 240] as const
+    const money = (amount: number) => `$${amount.toLocaleString()}`
+    const statusLabel = t(`status.${bill.status}`)
+
+    doc.setFillColor(0, 0, 0)
+    doc.rect(0, 0, pageW, 30, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(18)
+    const logoX = 14
+    const logoY = 12
+    const logoPrefix = 'pay'
+    doc.text(logoPrefix, logoX, logoY)
+    const logoPrefixWidth = doc.getTextWidth(logoPrefix)
+    doc.setTextColor(primary[0], primary[1], primary[2])
+    doc.text('r.', logoX + logoPrefixWidth, logoY)
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Accounts Payable Workspace', 14, 18)
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(20)
+    doc.text('INVOICE', pageW - 14, 12, { align: 'right' })
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Invoice # ${bill.invoiceNumber}`, pageW - 14, 18, { align: 'right' })
+
+    doc.setDrawColor(lineColor[0], lineColor[1], lineColor[2])
+    doc.setFillColor(248, 250, 252)
+    doc.roundedRect(14, 36, 88, 34, 2, 2, 'FD')
+    doc.roundedRect(pageW - 102, 36, 88, 34, 2, 2, 'FD')
+
+    doc.setTextColor(slate500[0], slate500[1], slate500[2])
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(9)
+    doc.text('BILL TO', 18, 43)
+    doc.text('INVOICE DETAILS', pageW - 98, 43)
+
+    doc.setTextColor(slate900[0], slate900[1], slate900[2])
+    doc.setFont('helvetica', 'bold')
     doc.setFontSize(11)
-    doc.setTextColor(60, 60, 60)
-    doc.text(vendor?.name ?? 'Vendor', 14, y)
-    y += 10
-    doc.setTextColor(0, 0, 0)
-    doc.text(`Amount: $${bill.amount.toLocaleString()}`, 14, y)
-    y += 6
-    doc.text(`Invoice date: ${bill.invoiceDate}`, 14, y)
-    y += 6
-    doc.text(`Due date: ${bill.dueDate}`, 14, y)
-    y += 6
-    doc.text(`Status: ${bill.status}`, 14, y)
-    y += 8
-    if (bill.notes) {
-      doc.setFontSize(10)
-      doc.text(`Notes: ${bill.notes}`, 14, y)
-      y += 8
-    }
-    if (lineItems.length) {
-      doc.setFontSize(12)
-      doc.text('Line items', 14, y)
-      y += 6
-      doc.setFontSize(10)
-      for (const row of lineItems) {
-        doc.text(`${row.description}`, 14, y)
-        doc.text(`$${row.amount.toLocaleString()}`, 150, y)
-        y += 5
-        if (y > 270) {
-          doc.addPage()
-          y = 16
-        }
+    doc.text(vendor?.name ?? 'Unknown vendor', 18, 50)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.text(vendor?.email ?? 'No email available', 18, 56)
+    doc.text(`Payment terms: ${vendor?.paymentTerms ?? 30} days`, 18, 62)
+
+    doc.setTextColor(slate700[0], slate700[1], slate700[2])
+    doc.text(`Invoice date: ${bill.invoiceDate}`, pageW - 98, 50)
+    doc.text(`Due date: ${bill.dueDate}`, pageW - 98, 56)
+    doc.text(`Status: ${statusLabel}`, pageW - 98, 62)
+
+    const startY = 80
+    doc.setFillColor(241, 245, 249)
+    doc.rect(14, startY, pageW - 28, 9, 'F')
+    doc.setTextColor(slate500[0], slate500[1], slate500[2])
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(9)
+    doc.text('DESCRIPTION', 18, startY + 6)
+    doc.text('AMOUNT', pageW - 18, startY + 6, { align: 'right' })
+
+    let y = startY + 14
+    const items = lineItems.length
+      ? lineItems
+      : [{ description: bill.notes?.trim() || 'Invoice total', amount: bill.amount }]
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+    doc.setTextColor(slate900[0], slate900[1], slate900[2])
+    for (const row of items) {
+      if (y > pageH - 40) {
+        doc.addPage()
+        y = 20
       }
+      doc.text(String(row.description), 18, y)
+      doc.text(money(row.amount), pageW - 18, y, { align: 'right' })
+      doc.setDrawColor(lineColor[0], lineColor[1], lineColor[2])
+      doc.line(14, y + 3, pageW - 14, y + 3)
+      y += 10
     }
+
+    const totalBoxY = Math.min(y + 4, pageH - 30)
+    doc.setFillColor(239, 246, 255)
+    doc.roundedRect(pageW - 84, totalBoxY, 70, 16, 2, 2, 'F')
+    doc.setTextColor(primary[0], primary[1], primary[2])
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(9)
+    doc.text('TOTAL DUE', pageW - 78, totalBoxY + 6)
+    doc.setFontSize(13)
+    doc.text(money(bill.amount), pageW - 18, totalBoxY + 12, { align: 'right' })
+
+    doc.setTextColor(slate500[0], slate500[1], slate500[2])
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.text('Generated by payr', 14, pageH - 10)
+    doc.text(new Date().toLocaleString(), pageW - 14, pageH - 10, { align: 'right' })
     doc.save(`${bill.invoiceNumber}.pdf`)
   }
 
@@ -408,23 +475,19 @@ export default function BillDetailPage() {
         onClose={() => setIsPayModalOpen(false)}
         onConfirm={onConfirmPayment}
       />
-      <Modal title=" " isOpen={isSubmitSuccessOpen} onClose={() => {}}>
-        <div className="flex flex-col items-center justify-center gap-3 py-4 text-center">
-          <CheckCircle2 size={58} className="text-emerald-500" />
-          <p className="text-xl font-semibold text-slate-900">{t('bills.submit.successTitle')}</p>
-          <p className="max-w-sm text-sm text-slate-500">{t('bills.submit.successBody')}</p>
-          <Button
-            type="button"
-            className="mt-2"
-            onClick={() => {
-              setIsSubmitSuccessOpen(false)
-              navigate('/bills?tab=drafts', { replace: true })
-            }}
-          >
-            {t('bills.submit.successBack')}
-          </Button>
-        </div>
-      </Modal>
+      <ConfirmDialog
+        isOpen={isSubmitConfirmOpen}
+        title={t('bills.submit.confirm.title')}
+        description={t('bills.submit.confirm.body')}
+        confirmLabel={hasRejectedHistory ? t('bills.submit.confirm.resubmitCta') : t('bills.submit.confirm.submitCta')}
+        cancelLabel={t('bills.submit.confirm.cancel')}
+        confirmVariant="primary"
+        onConfirm={() => {
+          setIsSubmitConfirmOpen(false)
+          void onSubmitForApproval()
+        }}
+        onCancel={() => setIsSubmitConfirmOpen(false)}
+      />
     </div>
   )
 }

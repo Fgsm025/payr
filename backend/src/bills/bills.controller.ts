@@ -33,8 +33,14 @@ export class BillsController {
   }
 
   @Get(':id')
-  async findOne(@Headers('x-entity-id') entityIdHeader: string, @Param('id') id: string) {
-    const bill = await this.billsService.findOne(requireEntityId(entityIdHeader), id);
+  async findOne(
+    @Headers('x-entity-id') entityIdHeader: string,
+    @Param('id') id: string,
+  ) {
+    const bill = await this.billsService.findOne(
+      requireEntityId(entityIdHeader),
+      id,
+    );
     if (!bill) throw new NotFoundException('Bill not found');
     return bill;
   }
@@ -53,10 +59,18 @@ export class BillsController {
       amount: number;
       currency?: string;
       notes?: string;
-      line_items?: Array<{ description: string; amount: number; category: string }>;
+      line_items?: Array<{
+        description: string;
+        amount: number;
+        category: string;
+      }>;
     },
   ) {
-    return this.billsService.create(requireEntityId(entityIdHeader), body, req.user?.email);
+    return this.billsService.create(
+      requireEntityId(entityIdHeader),
+      body,
+      req.user?.email,
+    );
   }
 
   @Post('extract')
@@ -71,7 +85,11 @@ export class BillsController {
     @Param('id') id: string,
     @Body() body: { status: 'pending_approval' },
   ) {
-    return this.billsService.transitionFromPatch(requireEntityId(entityIdHeader), id, body.status);
+    return this.billsService.transitionFromPatch(
+      requireEntityId(entityIdHeader),
+      id,
+      body.status,
+    );
   }
 
   @Patch(':id/status')
@@ -85,10 +103,14 @@ export class BillsController {
       comment?: string;
     },
   ) {
-    return this.billsService.transitionStatus(requireEntityId(entityIdHeader), id, {
-      ...body,
-      actorEmail: req.user?.email,
-    });
+    return this.billsService.transitionStatus(
+      requireEntityId(entityIdHeader),
+      id,
+      {
+        ...body,
+        actorEmail: req.user?.email,
+      },
+    );
   }
 
   @Patch(':id/resubmit')
@@ -105,10 +127,19 @@ export class BillsController {
       amount: number;
       currency?: string;
       notes?: string;
-      line_items?: Array<{ description: string; amount: number; category: string }>;
+      line_items?: Array<{
+        description: string;
+        amount: number;
+        category: string;
+      }>;
     },
   ) {
-    return this.billsService.resubmitRejected(requireEntityId(entityIdHeader), id, body, req.user?.email);
+    return this.billsService.resubmitRejected(
+      requireEntityId(entityIdHeader),
+      id,
+      body,
+      req.user?.email,
+    );
   }
 
   @Patch(':id/edit-draft')
@@ -125,14 +156,26 @@ export class BillsController {
       amount: number;
       currency?: string;
       notes?: string;
-      line_items?: Array<{ description: string; amount: number; category: string }>;
+      line_items?: Array<{
+        description: string;
+        amount: number;
+        category: string;
+      }>;
     },
   ) {
-    return this.billsService.updateDraft(requireEntityId(entityIdHeader), id, body, req.user?.email);
+    return this.billsService.updateDraft(
+      requireEntityId(entityIdHeader),
+      id,
+      body,
+      req.user?.email,
+    );
   }
 
   @Delete(':id')
-  removeDraft(@Headers('x-entity-id') entityIdHeader: string, @Param('id') id: string) {
+  removeDraft(
+    @Headers('x-entity-id') entityIdHeader: string,
+    @Param('id') id: string,
+  ) {
     return this.billsService.removeDraft(requireEntityId(entityIdHeader), id);
   }
 }

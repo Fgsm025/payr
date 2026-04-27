@@ -49,6 +49,9 @@ export default function VendorDetailPage() {
 
         <div className="mt-4 grid gap-3 md:grid-cols-4">
           <InfoCard label={t('vendors.details.paymentTerms')} value={t('vendors.table.termsDays', { count: vendor.paymentTerms })} />
+          <InfoCard label={t('vendors.details.taxId')} value={vendor.taxId?.trim() ? vendor.taxId : '—'} />
+          <InfoCard label={t('vendors.details.defaultCurrency')} value={vendor.defaultCurrency?.trim() ? vendor.defaultCurrency : 'USD'} />
+          <InfoCard label={t('vendors.details.category')} value={vendor.category?.trim() ? vendor.category : 'Software'} />
           <InfoCard label={t('vendors.details.totalBills')} value={String(vendorBills.length)} />
           <InfoCard label={t('vendors.details.outstanding')} value={`$${outstanding.toLocaleString()}`} />
           <InfoCard label={t('vendors.details.totalPaid')} value={`$${paidTotal.toLocaleString()}`} />
@@ -80,7 +83,7 @@ export default function VendorDetailPage() {
                     <td className="px-4 py-2.5">
                       <button
                         type="button"
-                        className="font-medium text-[var(--color-primary)] hover:underline"
+                        className="cursor-pointer font-medium text-[var(--color-primary)] hover:underline"
                         onClick={() => navigate(`/bills/${bill.id}`)}
                       >
                         {bill.invoiceNumber}

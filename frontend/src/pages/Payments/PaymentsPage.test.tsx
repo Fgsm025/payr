@@ -56,10 +56,10 @@ describe('PaymentsPage', () => {
     renderPaymentsPage()
 
     await waitFor(() => {
-      expect(screen.getByText('Stripe Test Vendor')).toBeInTheDocument()
+      expect(screen.getAllByText('Stripe Test Vendor').length).toBeGreaterThan(0)
     })
-    expect(screen.getByText('ACH')).toBeInTheDocument()
-    expect(screen.getByText('REF-001')).toBeInTheDocument()
+    expect(screen.getAllByText('ACH').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('REF-001').length).toBeGreaterThan(0)
     expect(global.fetch).toHaveBeenCalledWith('http://localhost:3001/payments', {
       headers: { Authorization: 'Bearer tok', 'X-Entity-Id': 'company-x' },
     })

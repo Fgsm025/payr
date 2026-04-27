@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Archive, Trash2 } from 'lucide-react'
+import { Archive, Eye, Trash2 } from 'lucide-react'
 import DataTable from '../../components/ui/DataTable'
 import Button from '../../components/ui/Button'
 import StatusBadge from '../../components/ui/StatusBadge'
@@ -89,9 +89,15 @@ export default function BillsTable({
           <Button variant="success" size="sm" onClick={() => onAction(row.id, 'restore')}>
             {t('bills.action.restore')}
           </Button>
-          <Button variant="primary" size="sm" onClick={() => onView(row.id)}>
-            {t('bills.action.view')}
-          </Button>
+          <button
+            type="button"
+            onClick={() => onView(row.id)}
+            className="cursor-pointer rounded-lg border border-[var(--color-border)] p-1.5 text-slate-500 transition hover:border-[var(--color-primary)]/40 hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]"
+            aria-label={t('bills.action.view')}
+            title={t('bills.action.view')}
+          >
+            <Eye size={15} />
+          </button>
         </div>
       )
     }

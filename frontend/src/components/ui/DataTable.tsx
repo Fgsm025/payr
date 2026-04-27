@@ -47,7 +47,26 @@ export default function DataTable<T extends Record<string, unknown>>({
 
   return (
     <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-white">
-      <div className="overflow-x-auto">
+      <div className="space-y-3 p-3 md:hidden">
+        {sortedData.map((row) => (
+          <article
+            key={rowKey(row)}
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3"
+          >
+            <div className="space-y-2">
+              {columns.map((col) => (
+                <div key={`${rowKey(row)}-${col.key}`} className="flex items-start justify-between gap-3">
+                  <p className="shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-500">{col.label}</p>
+                  <div className="min-w-0 text-right text-sm text-slate-700">
+                    {col.render ? col.render(row) : (row[col.key] as React.ReactNode)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </article>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
         <table className="min-w-full divide-y divide-[var(--color-border)] text-sm">
           <thead className="bg-slate-50">
             <tr>

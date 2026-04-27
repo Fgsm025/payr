@@ -1,10 +1,20 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { BillStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from '../payments/payments.service';
 import { VendorsService } from '../vendors/vendors.service';
 
-type BillAction = 'submit' | 'approve' | 'reject' | 'pay' | 'archive' | 'restore';
+type BillAction =
+  | 'submit'
+  | 'approve'
+  | 'reject'
+  | 'pay'
+  | 'archive'
+  | 'restore';
 
 @Injectable()
 export class BillsService {
@@ -20,9 +30,16 @@ export class BillsService {
     return clean ? `[by:${actorEmail}] ${clean}` : `[by:${actorEmail}]`;
   }
 
-  private readonly transitionMap: Record<BillStatus, Partial<Record<BillAction, BillStatus>>> = {
+  private readonly transitionMap: Record<
+    BillStatus,
+    Partial<Record<BillAction, BillStatus>>
+  > = {
     draft: { submit: 'pending_approval', archive: 'archived' },
-    pending_approval: { approve: 'approved', reject: 'rejected', archive: 'archived' },
+    pending_approval: {
+      approve: 'approved',
+      reject: 'rejected',
+      archive: 'archived',
+    },
     approved: { pay: 'paid', archive: 'archived' },
     scheduled: { pay: 'paid', archive: 'archived' },
     paid: {},
@@ -33,7 +50,11 @@ export class BillsService {
   findAll(entityId: string) {
     return this.prisma.bill.findMany({
       where: { entityId },
-      include: { vendor: true, lineItems: true, history: { orderBy: { createdAt: 'asc' } } },
+      include: {
+        vendor: true,
+        lineItems: true,
+        history: { orderBy: { createdAt: 'asc' } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -41,7 +62,11 @@ export class BillsService {
   findOne(entityId: string, id: string) {
     return this.prisma.bill.findFirst({
       where: { id, entityId },
-      include: { vendor: true, lineItems: true, history: { orderBy: { createdAt: 'asc' } } },
+      include: {
+        vendor: true,
+        lineItems: true,
+        history: { orderBy: { createdAt: 'asc' } },
+      },
     });
   }
 
@@ -56,19 +81,28 @@ export class BillsService {
       amount: number;
       currency?: string;
       notes?: string;
-      line_items?: Array<{ description: string; amount: number; category: string }>;
+      line_items?: Array<{
+        description: string;
+        amount: number;
+        category: string;
+      }>;
     },
     actorEmail?: string,
   ) {
     let vendorId = input.vendorId;
 
     if (vendorId) {
-      const v = await this.prisma.vendor.findFirst({ where: { id: vendorId, entityId } });
+      const v = await this.prisma.vendor.findFirst({
+        where: { id: vendorId, entityId },
+      });
       if (!v) throw new BadRequestException('Vendor not found for this entity');
     }
 
     if (!vendorId && input.vendorName) {
-      const vendor = await this.vendorsService.findOrCreateByName(input.vendorName, entityId);
+      const vendor = await this.vendorsService.findOrCreateByName(
+        input.vendorName,
+        entityId,
+      );
       vendorId = vendor.id;
     }
 
@@ -98,7 +132,10 @@ export class BillsService {
             })) ?? [],
         },
         history: {
-          create: { status: 'draft', comment: this.withActor('Created via POST /bills', actorEmail) },
+          create: {
+            status: 'draft',
+            comment: this.withActor('Created via POST /bills', actorEmail),
+          },
         },
       },
       include: { vendor: true, lineItems: true, history: true },
@@ -118,7 +155,11 @@ export class BillsService {
       amount: number;
       currency?: string;
       notes?: string;
-      line_items?: Array<{ description: string; amount: number; category: string }>;
+      line_items?: Array<{
+        description: string;
+        amount: number;
+        category: string;
+      }>;
     },
     actorEmail?: string,
   ) {
@@ -129,7 +170,9 @@ export class BillsService {
     }
 
     if (input.vendorId) {
-      const v = await this.prisma.vendor.findFirst({ where: { id: input.vendorId, entityId } });
+      const v = await this.prisma.vendor.findFirst({
+        where: { id: input.vendorId, entityId },
+      });
       if (!v) throw new BadRequestException('Vendor not found for this entity');
     }
 
@@ -156,7 +199,10 @@ export class BillsService {
             })) ?? [],
         },
         history: {
-          create: { status: 'pending_approval', comment: this.withActor('Resubmitted after rejection', actorEmail) },
+          create: {
+            status: 'pending_approval',
+            comment: this.withActor('Resubmitted after rejection', actorEmail),
+          },
         },
       },
       include: { vendor: true, lineItems: true, history: true },
@@ -174,7 +220,11 @@ export class BillsService {
       amount: number;
       currency?: string;
       notes?: string;
-      line_items?: Array<{ description: string; amount: number; category: string }>;
+      line_items?: Array<{
+        description: string;
+        amount: number;
+        category: string;
+      }>;
     },
     actorEmail?: string,
   ) {
@@ -185,7 +235,9 @@ export class BillsService {
     }
 
     if (input.vendorId) {
-      const v = await this.prisma.vendor.findFirst({ where: { id: input.vendorId, entityId } });
+      const v = await this.prisma.vendor.findFirst({
+        where: { id: input.vendorId, entityId },
+      });
       if (!v) throw new BadRequestException('Vendor not found for this entity');
     }
 
@@ -211,14 +263,21 @@ export class BillsService {
             })) ?? [],
         },
         history: {
-          create: { status: 'draft', comment: this.withActor('Draft edited', actorEmail) },
+          create: {
+            status: 'draft',
+            comment: this.withActor('Draft edited', actorEmail),
+          },
         },
       },
       include: { vendor: true, lineItems: true, history: true },
     });
   }
 
-  async transitionStatus(entityId: string, id: string, input: { action: BillAction; comment?: string; actorEmail?: string }) {
+  async transitionStatus(
+    entityId: string,
+    id: string,
+    input: { action: BillAction; comment?: string; actorEmail?: string },
+  ) {
     const bill = await this.prisma.bill.findFirst({ where: { id, entityId } });
     if (!bill) throw new NotFoundException('Bill not found');
 
@@ -234,7 +293,10 @@ export class BillsService {
       data: {
         status: nextStatus,
         history: {
-          create: { status: nextStatus, comment: this.withActor(input.comment, input.actorEmail) },
+          create: {
+            status: nextStatus,
+            comment: this.withActor(input.comment, input.actorEmail),
+          },
         },
       },
       include: { vendor: true, lineItems: true, history: true },
