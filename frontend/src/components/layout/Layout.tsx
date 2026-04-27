@@ -16,10 +16,17 @@ const pageTitleKeys: Record<string, string> = {
 export default function Layout() {
   const location = useLocation()
   const theme = useAppStore((state) => state.theme)
+  const snack = useAppStore((state) => state.snack)
+  const clearSnack = useAppStore((state) => state.clearSnack)
   const { t } = useI18n()
   const title = t(pageTitleKeys[location.pathname] ?? 'page.default')
   const subtitle = location.pathname === '/payments' ? 'Completed bill payments.' : undefined
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+  const snackToneClasses: Record<'success' | 'error' | 'info', string> = {
+    success: 'border-emerald-200 bg-emerald-50/95 text-emerald-700',
+    error: 'border-rose-200 bg-rose-50/95 text-rose-700',
+    info: 'border-sky-200 bg-sky-50/95 text-sky-700',
+  }
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -28,6 +35,12 @@ export default function Layout() {
   useEffect(() => {
     setIsMobileSidebarOpen(false)
   }, [location.pathname])
+
+  useEffect(() => {
+    if (!snack) return
+    const timer = globalThis.setTimeout(() => clearSnack(), 3200)
+    return () => globalThis.clearTimeout(timer)
+  }, [snack, clearSnack])
 
   return (
     <div className='h-screen overflow-hidden p-2 md:px-3 md:py-6 lg:px-1 lg:py-7'>
@@ -57,10 +70,20 @@ export default function Layout() {
             onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
             subtitle={subtitle}
           />
-          <div className='min-h-0 flex-1 overflow-y-auto pr-1'>
+          <div className='app-main-scroll min-h-0 flex-1 overflow-y-auto pr-1'>
             <Outlet />
           </div>
         </main>
+        {snack ? (
+          <div className='pointer-events-none absolute bottom-4 right-4 z-50'>
+            <div
+              key={snack.id}
+              className={`min-w-[260px] rounded-xl border px-4 py-3 text-sm shadow-lg backdrop-blur-sm ${snackToneClasses[snack.tone]}`}
+            >
+              {snack.message}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   )

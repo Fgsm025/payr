@@ -100,6 +100,22 @@ describe('bill flows (store)', () => {
     invSpy.mockRestore()
   })
 
+  it('does not apply local transition when PATCH fails while authenticated', async () => {
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        ok: false,
+        status: 400,
+      }),
+    ) as jest.Mock
+
+    useAppStore.setState({ authToken: 'fake-jwt', isAuthenticated: true })
+    await act(async () => {
+      await useAppStore.getState().transitionBill('flow-test-1', 'pay')
+    })
+
+    expect(useAppStore.getState().bills.find((b) => b.id === 'flow-test-1')?.status).toBe('draft')
+  })
+
   it('fetchBillsApi loads bills from GET /bills', async () => {
     global.fetch = jest.fn(() =>
       Promise.resolve({

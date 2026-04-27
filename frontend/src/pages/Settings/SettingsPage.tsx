@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { CreditCard, Pencil, Plus, Trash2 } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Modal from '../../components/ui/Modal'
@@ -7,6 +7,16 @@ import { useAppStore } from '../../store/useAppStore'
 
 const countries = ['Argentina', 'Uruguay', 'Chile', 'United States', 'Brazil']
 const currencies = ['USD', 'ARS', 'UYU', 'CLP', 'BRL']
+const MAX_AVATAR_BYTES = 600_000
+
+function nameToInitials(name: string): string {
+  return name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+}
 
 export default function SettingsPage() {
   const { t } = useTranslation()
@@ -23,6 +33,9 @@ export default function SettingsPage() {
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [profileName, setProfileName] = useState(authUser?.name ?? 'Admin User')
   const [profileEmail, setProfileEmail] = useState(authUser?.email ?? 'admin@payr.co')
+  const [profileAvatarDraft, setProfileAvatarDraft] = useState<string | null>(authUser?.avatarDataUrl ?? null)
+  const [avatarError, setAvatarError] = useState('')
+  const avatarInputRef = useRef<HTMLInputElement>(null)
   const [workspaceName, setWorkspaceName] = useState('')
   const [taxId, setTaxId] = useState('')
   const [country, setCountry] = useState(countries[0])
@@ -60,14 +73,38 @@ export default function SettingsPage() {
 
   const onSaveProfile = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
-    updateAuthProfile({ name: profileName, email: profileEmail })
+    updateAuthProfile({ name: profileName, email: profileEmail, avatarDataUrl: profileAvatarDraft })
     setIsEditingProfile(false)
+    setAvatarError('')
   }
 
   const onCancelProfileEdit = () => {
     setProfileName(authUser?.name ?? 'Admin User')
     setProfileEmail(authUser?.email ?? 'admin@payr.co')
+    setProfileAvatarDraft(authUser?.avatarDataUrl ?? null)
+    setAvatarError('')
     setIsEditingProfile(false)
+  }
+
+  const onAvatarFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    if (!/^image\/(jpeg|png|gif|webp)$/i.test(file.type)) {
+      setAvatarError(t('settings.error.avatarType'))
+      return
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      setAvatarError(t('settings.error.avatarTooLarge'))
+      return
+    }
+    setAvatarError('')
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result
+      if (typeof result === 'string') setProfileAvatarDraft(result)
+    }
+    reader.readAsDataURL(file)
   }
 
   const resetCardForm = () => {
@@ -117,7 +154,11 @@ export default function SettingsPage() {
           {!isEditingProfile && (
             <button
               type="button"
-              onClick={() => setIsEditingProfile(true)}
+              onClick={() => {
+                setProfileAvatarDraft(authUser?.avatarDataUrl ?? null)
+                setAvatarError('')
+                setIsEditingProfile(true)
+              }}
               className="rounded-lg border border-[var(--color-border)] p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
               aria-label={t('settings.account.editAria')}
               title={t('settings.account.editTitle')}
@@ -129,6 +170,46 @@ export default function SettingsPage() {
 
         {isEditingProfile ? (
           <form onSubmit={onSaveProfile} className="mt-6 space-y-4">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                {t('settings.profile.avatarLabel')}
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-4">
+                <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[var(--color-border)] bg-slate-100 text-lg font-bold text-slate-600">
+                  {profileAvatarDraft ? (
+                    <img src={profileAvatarDraft} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    nameToInitials(profileName || 'A')
+                  )}
+                </div>
+                <div className="flex min-w-0 flex-col gap-2">
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    className="sr-only"
+                    onChange={onAvatarFileChange}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => avatarInputRef.current?.click()}
+                    >
+                      {t('settings.profile.avatarChoose')}
+                    </Button>
+                    {profileAvatarDraft ? (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setProfileAvatarDraft(null)}>
+                        {t('settings.profile.avatarRemove')}
+                      </Button>
+                    ) : null}
+                  </div>
+                  <p className="text-xs text-slate-500">{t('settings.profile.avatarHint')}</p>
+                  {avatarError ? <p className="text-xs text-red-600">{avatarError}</p> : null}
+                </div>
+              </div>
+            </div>
             <div className="grid gap-4 md:grid-cols-2">
               <input
                 value={profileName}
@@ -151,7 +232,27 @@ export default function SettingsPage() {
             </div>
           </form>
         ) : (
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <div className="mt-6 space-y-6">
+            <div className="flex items-center gap-4">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[var(--color-border)] bg-slate-200 text-sm font-bold text-slate-700">
+                {authUser?.avatarDataUrl ? (
+                  <img src={authUser.avatarDataUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  nameToInitials(authUser?.name ?? 'Admin User')
+                )}
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  {t('settings.profile.avatarLabel')}
+                </p>
+                <p className="mt-0.5 text-sm text-slate-600">
+                  {authUser?.avatarDataUrl
+                    ? t('settings.profile.avatarCustom')
+                    : t('settings.profile.avatarUsingInitials')}
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                 {t('settings.profile.name')}
@@ -175,6 +276,7 @@ export default function SettingsPage() {
                 {t('settings.profile.status')}
               </p>
               <p className="mt-1 text-sm font-medium text-emerald-600">{t('settings.profile.active')}</p>
+            </div>
             </div>
           </div>
         )}

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import { Eye, Trash2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import DataTable from '../../components/ui/DataTable'
 import Button from '../../components/ui/Button'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
@@ -21,6 +22,7 @@ type VendorRow = {
 
 export default function VendorsPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const vendorsQuery = useWorkspaceVendorsQuery()
   const billsQuery = useWorkspaceBillsQuery()
   const createVendor = useCreateVendorMutation()
@@ -143,6 +145,15 @@ export default function VendorsPage() {
             <Button variant="secondary" size="sm" onClick={() => openEditModal(row)}>
               {t('vendors.action.edit')}
             </Button>
+            <button
+              type="button"
+              onClick={() => navigate(`/vendors/${row.id}`)}
+              className="rounded-lg border border-[var(--color-border)] p-1.5 text-slate-500 transition hover:border-[var(--color-primary)]/40 hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]"
+              aria-label={t('vendors.action.viewAria', { name: row.name })}
+              title={t('vendors.action.viewTitle')}
+            >
+              <Eye size={15} />
+            </button>
             <button
               type="button"
               onClick={() => setVendorToDelete(row)}

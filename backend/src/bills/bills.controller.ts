@@ -1,12 +1,14 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   NotFoundException,
   Param,
   Patch,
   Post,
+  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -40,6 +42,7 @@ export class BillsController {
   @Post()
   create(
     @Headers('x-entity-id') entityIdHeader: string,
+    @Req() req: { user?: { email?: string } },
     @Body()
     body: {
       vendorId?: string;
@@ -53,7 +56,7 @@ export class BillsController {
       line_items?: Array<{ description: string; amount: number; category: string }>;
     },
   ) {
-    return this.billsService.create(requireEntityId(entityIdHeader), body);
+    return this.billsService.create(requireEntityId(entityIdHeader), body, req.user?.email);
   }
 
   @Post('extract')
@@ -74,13 +77,62 @@ export class BillsController {
   @Patch(':id/status')
   updateStatus(
     @Headers('x-entity-id') entityIdHeader: string,
+    @Req() req: { user?: { email?: string } },
     @Param('id') id: string,
     @Body()
     body: {
-      action: 'submit' | 'approve' | 'reject' | 'pay' | 'archive';
+      action: 'submit' | 'approve' | 'reject' | 'pay' | 'archive' | 'restore';
       comment?: string;
     },
   ) {
-    return this.billsService.transitionStatus(requireEntityId(entityIdHeader), id, body);
+    return this.billsService.transitionStatus(requireEntityId(entityIdHeader), id, {
+      ...body,
+      actorEmail: req.user?.email,
+    });
+  }
+
+  @Patch(':id/resubmit')
+  resubmitRejected(
+    @Headers('x-entity-id') entityIdHeader: string,
+    @Req() req: { user?: { email?: string } },
+    @Param('id') id: string,
+    @Body()
+    body: {
+      vendorId?: string;
+      invoiceNumber: string;
+      invoiceDate: string;
+      dueDate: string;
+      amount: number;
+      currency?: string;
+      notes?: string;
+      line_items?: Array<{ description: string; amount: number; category: string }>;
+    },
+  ) {
+    return this.billsService.resubmitRejected(requireEntityId(entityIdHeader), id, body, req.user?.email);
+  }
+
+  @Patch(':id/edit-draft')
+  editDraft(
+    @Headers('x-entity-id') entityIdHeader: string,
+    @Req() req: { user?: { email?: string } },
+    @Param('id') id: string,
+    @Body()
+    body: {
+      vendorId?: string;
+      invoiceNumber: string;
+      invoiceDate: string;
+      dueDate: string;
+      amount: number;
+      currency?: string;
+      notes?: string;
+      line_items?: Array<{ description: string; amount: number; category: string }>;
+    },
+  ) {
+    return this.billsService.updateDraft(requireEntityId(entityIdHeader), id, body, req.user?.email);
+  }
+
+  @Delete(':id')
+  removeDraft(@Headers('x-entity-id') entityIdHeader: string, @Param('id') id: string) {
+    return this.billsService.removeDraft(requireEntityId(entityIdHeader), id);
   }
 }

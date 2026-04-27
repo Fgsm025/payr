@@ -25,7 +25,7 @@ export type Bill = {
   paidDate?: string
   notes?: string
   lineItems?: Array<{ description: string; amount: number; category: string }>
-  history?: Array<{ status: BillStatus; date: string; comment?: string }>
+  history?: Array<{ status: BillStatus; date: string; comment?: string; actor?: string }>
 }
 
 export const vendors: Vendor[] = [

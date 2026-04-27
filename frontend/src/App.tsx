@@ -4,6 +4,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute'
 import Dashboard from './pages/Dashboard'
 import BillsPage from './pages/Bills/BillsPage'
 import VendorsPage from './pages/Vendors/VendorsPage'
+import VendorDetailPage from './pages/Vendors/VendorDetailPage'
 import PaymentsPage from './pages/Payments/PaymentsPage'
 import BillFormPage from './pages/Bills/BillFormPage'
 import BillDetailPage from './pages/Bills/BillDetailPage'
@@ -22,8 +23,10 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/bills" element={<BillsPage />} />
         <Route path="/bills/new" element={<BillFormPage />} />
+        <Route path="/bills/:id/edit" element={<BillFormPage />} />
         <Route path="/bills/:id" element={<BillDetailPage />} />
         <Route path="/vendors" element={<VendorsPage />} />
+        <Route path="/vendors/:id" element={<VendorDetailPage />} />
         <Route path="/payments" element={<PaymentsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>

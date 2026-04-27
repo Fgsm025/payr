@@ -1,10 +1,12 @@
-import { useMemo, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import Button from '../../components/ui/Button'
 import { useAppStore } from '../../store/useAppStore'
 import { API_BASE_URL } from '@/lib/apiBaseUrl'
 import { queryClient } from '@/lib/queryClient'
-import { useWorkspaceVendorsQuery } from '@/hooks/useWorkspaceQueries'
+import { useWorkspaceBillQuery, useWorkspaceVendorsQuery } from '@/hooks/useWorkspaceQueries'
+import { mapApiBillToStore } from '@/utils/mapApiBillToStore'
+import { useTranslation } from '../../i18n/useI18n'
 
 type LineItem = { description: string; amount: string; category: string }
 
@@ -17,7 +19,11 @@ function suggestInvoiceNumber() {
 }
 
 export default function BillFormPage() {
+  const { t } = useTranslation()
+  const { id } = useParams()
+  const isEditMode = Boolean(id)
   const vendorsQuery = useWorkspaceVendorsQuery()
+  const billQuery = useWorkspaceBillQuery(id)
   const vendors = vendorsQuery.data ?? []
   const authToken = useAppStore((state) => state.authToken)
   const activeWorkspaceId = useAppStore((state) => state.activeWorkspaceId)
@@ -25,7 +31,7 @@ export default function BillFormPage() {
   const navigate = useNavigate()
 
   const [vendorId, setVendorId] = useState(vendors[0]?.id ?? '')
-  const [invoiceNumber, setInvoiceNumber] = useState(suggestInvoiceNumber())
+  const [invoiceNumber, setInvoiceNumber] = useState(isEditMode ? '' : suggestInvoiceNumber())
   const [invoiceDate, setInvoiceDate] = useState(today)
   const [dueDate, setDueDate] = useState(today)
   const [amount, setAmount] = useState('')
@@ -33,6 +39,14 @@ export default function BillFormPage() {
   const [lineItems, setLineItems] = useState<LineItem[]>([{ description: '', amount: '', category: '' }])
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const bill = useMemo(() => (billQuery.data ? mapApiBillToStore(billQuery.data) : undefined), [billQuery.data])
+  const rejectedReason = useMemo(
+    () =>
+      bill?.status === 'rejected'
+        ? [...(bill.history ?? [])].reverse().find((entry) => entry.status === 'rejected')?.comment ?? ''
+        : '',
+    [bill],
+  )
 
   const parsedAmount = useMemo(() => Number(amount), [amount])
 
@@ -44,7 +58,26 @@ export default function BillFormPage() {
     setLineItems((prev) => prev.map((item, i) => (i === index ? { ...item, [key]: value } : item)))
   }
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    if (!isEditMode || !bill || !id) return
+    setVendorId(bill.vendorId)
+    setInvoiceNumber(bill.invoiceNumber)
+    setInvoiceDate(bill.invoiceDate)
+    setDueDate(bill.dueDate)
+    setAmount(String(bill.amount))
+    setNotes(bill.notes ?? '')
+    setLineItems(
+      bill.lineItems?.length
+        ? bill.lineItems.map((li) => ({
+            description: li.description,
+            amount: String(li.amount),
+            category: li.category,
+          }))
+        : [{ description: '', amount: '', category: '' }],
+    )
+  }, [bill, id, isEditMode])
+
+  const onSubmit = async (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!vendorId || !invoiceNumber || !dueDate || !parsedAmount) {
       setError('Vendor, invoice number, due date and amount are required.')
@@ -59,8 +92,15 @@ export default function BillFormPage() {
     setIsSubmitting(true)
     setError('')
     try {
-      const response = await fetch(`${API_BASE_URL}/bills`, {
-        method: 'POST',
+      let endpoint = `${API_BASE_URL}/bills`
+      if (isEditMode && id) {
+        endpoint =
+          bill?.status === 'rejected'
+            ? `${API_BASE_URL}/bills/${id}/resubmit`
+            : `${API_BASE_URL}/bills/${id}/edit-draft`
+      }
+      const response = await fetch(endpoint, {
+        method: isEditMode ? 'PATCH' : 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${authToken}`,
@@ -87,7 +127,7 @@ export default function BillFormPage() {
         logout()
         return
       }
-      if (!response.ok) throw new Error('Failed to create bill')
+      if (!response.ok) throw new Error('Failed to save bill')
       await queryClient.invalidateQueries({ queryKey: ['workspace', activeWorkspaceId] })
       navigate('/bills', { replace: true })
     } catch {
@@ -97,10 +137,39 @@ export default function BillFormPage() {
     }
   }
 
+  if (isEditMode && billQuery.isPending) {
+    return (
+      <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6">
+        <p className="text-sm text-slate-500">Loading bill...</p>
+      </div>
+    )
+  }
+  if (isEditMode && billQuery.isError) return <Navigate to="/bills" replace />
+  if (isEditMode && bill && !['draft', 'rejected'].includes(bill.status)) return <Navigate to="/bills" replace />
+
+  let submitLabel = 'Save Draft'
+  if (isEditMode) submitLabel = bill?.status === 'rejected' ? 'Resubmit for Approval' : 'Save Changes'
+  if (isSubmitting) submitLabel = 'Saving…'
+  const editTitle = bill?.status === 'rejected' ? 'Edit Rejected Bill' : 'Edit Draft Bill'
+  const editSubtitle =
+    bill?.status === 'rejected'
+      ? 'Fix details and resubmit for approval.'
+      : 'Update the draft details before submitting for approval.'
+
   return (
     <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6">
-      <h3 className="text-xl font-semibold text-slate-900">New Bill</h3>
-      <p className="mt-1 text-sm text-slate-500">Create a draft bill for approval workflow.</p>
+      <h3 className="text-xl font-semibold text-slate-900">{isEditMode ? editTitle : 'New Bill'}</h3>
+      <p className="mt-1 text-sm text-slate-500">
+        {isEditMode ? editSubtitle : 'Create a draft bill for approval workflow.'}
+      </p>
+      {isEditMode && bill?.status === 'rejected' && rejectedReason ? (
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <p className="font-semibold">{t('bills.reject.bannerTitle')}</p>
+          <p className="mt-1">
+            {t('bills.reject.reasonPrefix')}: {rejectedReason}
+          </p>
+        </div>
+      ) : null}
 
       <form onSubmit={onSubmit} className="mt-6 space-y-4">
         <div className="grid gap-4 md:grid-cols-2">
@@ -158,9 +227,13 @@ export default function BillFormPage() {
 
         <div className="flex items-center gap-2">
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving…' : 'Save Draft'}
+            {submitLabel}
           </Button>
-          <Button variant="secondary" type="button" onClick={() => navigate('/bills')}>
+          <Button
+            variant="secondary"
+            type="button"
+            onClick={() => navigate(isEditMode && id ? `/bills/${id}` : '/bills')}
+          >
             Cancel
           </Button>
         </div>

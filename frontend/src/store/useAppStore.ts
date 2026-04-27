@@ -8,13 +8,22 @@ import { workspaceQk } from '@/lib/workspaceQueryKeys'
 
 export const DEFAULT_WORKSPACE_ID = 'company-x'
 
-type BillAction = 'submit' | 'approve' | 'reject' | 'pay' | 'archive'
+type BillAction = 'submit' | 'approve' | 'reject' | 'pay' | 'archive' | 'restore'
+type SnackTone = 'success' | 'error' | 'info'
+
+type Snack = {
+  id: number
+  message: string
+  tone: SnackTone
+}
 
 type AuthUser = {
   id: string
   email: string
   name: string
   role: string
+  /** Local-only profile photo (data URL), not synced with the API. */
+  avatarDataUrl?: string
 }
 
 type LegalEntity = {
@@ -88,6 +97,15 @@ function normalizePersistedWorkspace(raw: Record<string, unknown>) {
   raw.activeWorkspaceId = wid
 }
 
+const actionSnackCopy: Record<BillAction, { message: string; tone: SnackTone }> = {
+  submit: { message: 'Bill submitted for approval.', tone: 'success' },
+  approve: { message: 'Bill approved successfully.', tone: 'success' },
+  reject: { message: 'Bill rejected and sent back to Drafts.', tone: 'info' },
+  pay: { message: 'Payment recorded successfully.', tone: 'success' },
+  archive: { message: 'Bill archived.', tone: 'info' },
+  restore: { message: 'Bill restored to Drafts.', tone: 'success' },
+}
+
 type AppState = {
   vendors: Vendor[]
   addVendor: (input: { name: string; email: string; paymentTerms: number }) => void
@@ -95,7 +113,10 @@ type AppState = {
   deleteVendor: (vendorId: string) => void
   bills: Bill[]
   addBill: (input: Omit<Bill, 'id' | 'status' | 'history'>) => void
-  transitionBill: (billId: string, action: BillAction, comment?: string) => Promise<void>
+  transitionBill: (billId: string, action: BillAction, comment?: string) => Promise<boolean>
+  snack: Snack | null
+  showSnack: (message: string, tone?: SnackTone) => void
+  clearSnack: () => void
 
   legalEntities: LegalEntity[]
   activeWorkspaceId: string
@@ -128,7 +149,7 @@ type AppState = {
   authUser: AuthUser | null
   authExpiresAt: number | null
   login: (input: { email: string; password: string }) => Promise<boolean>
-  updateAuthProfile: (input: { name: string; email: string }) => void
+  updateAuthProfile: (input: { name: string; email: string; avatarDataUrl?: string | null }) => void
   logout: () => void
   bootstrapAuth: () => void
 }
@@ -192,6 +213,16 @@ export const useAppStore = create<AppState>()(
           }
           return { bills: [bill, ...state.bills] }
         }),
+      snack: null,
+      showSnack: (message, tone = 'success') =>
+        set({
+          snack: {
+            id: Date.now(),
+            message,
+            tone,
+          },
+        }),
+      clearSnack: () => set({ snack: null }),
       transitionBill: async (billId, action, comment) => {
         const transitionMap: Record<BillStatus, Partial<Record<BillAction, BillStatus>>> = {
           draft: { submit: 'pending_approval', archive: 'archived' },
@@ -199,8 +230,8 @@ export const useAppStore = create<AppState>()(
           approved: { pay: 'paid', archive: 'archived' },
           scheduled: { pay: 'paid', archive: 'archived' },
           paid: {},
-          rejected: {},
-          archived: {},
+          rejected: { submit: 'pending_approval', archive: 'archived' },
+          archived: { restore: 'draft' },
         }
 
         const { authToken, logout, activeWorkspaceId } = get()
@@ -216,22 +247,27 @@ export const useAppStore = create<AppState>()(
             })
             if (response.status === 401) {
               logout()
-              return
+              return false
             }
             if (response.ok) {
               invalidateWorkspaceQueries(activeWorkspaceId)
-              return
+              const nextSnack = actionSnackCopy[action]
+              get().showSnack(nextSnack.message, nextSnack.tone)
+              return true
             }
+            return false
           } catch {
-            /* fall back to local transition */
+            return false
           }
         }
 
+        let didChange = false
         set((state) => {
           const bills = state.bills.map((bill) => {
             if (bill.id !== billId) return bill
             const nextStatus = transitionMap[bill.status]?.[action]
             if (!nextStatus) return bill
+            didChange = true
             return {
               ...bill,
               status: nextStatus,
@@ -244,6 +280,11 @@ export const useAppStore = create<AppState>()(
           })
           return { bills }
         })
+        if (didChange) {
+          const nextSnack = actionSnackCopy[action]
+          get().showSnack(nextSnack.message, nextSnack.tone)
+        }
+        return didChange
       },
 
       legalEntities: [{ ...DEFAULT_LEGAL_ENTITY }],
@@ -377,11 +418,16 @@ export const useAppStore = create<AppState>()(
 
           const data = await response.json()
           const expiresAt = Date.now() + Number(data.expiresIn ?? 0) * 1000
+          const prev = get().authUser
+          const authUser =
+            prev?.id === data.user.id && prev.avatarDataUrl
+              ? { ...data.user, avatarDataUrl: prev.avatarDataUrl }
+              : data.user
 
           set({
             isAuthenticated: true,
             authToken: data.accessToken,
-            authUser: data.user,
+            authUser,
             authExpiresAt: expiresAt,
           })
 
@@ -391,16 +437,18 @@ export const useAppStore = create<AppState>()(
           return false
         }
       },
-      updateAuthProfile: ({ name, email }) =>
+      updateAuthProfile: ({ name, email, avatarDataUrl }) =>
         set((state) => {
           if (!state.authUser) return state
-          return {
-            authUser: {
-              ...state.authUser,
-              name: name.trim() || state.authUser.name,
-              email: email.trim() || state.authUser.email,
-            },
+          const next: AuthUser = {
+            ...state.authUser,
+            name: name.trim() || state.authUser.name,
+            email: email.trim() || state.authUser.email,
           }
+          if (avatarDataUrl !== undefined) {
+            next.avatarDataUrl = avatarDataUrl ?? undefined
+          }
+          return { authUser: next }
         }),
       logout: () => {
         if (autoLogoutTimer) {
@@ -429,10 +477,10 @@ export const useAppStore = create<AppState>()(
     {
       name: 'billpay-store',
       version: 4,
-      migrate: (persisted, fromVersion) => {
+      migrate: (persisted, fromVersion = 0) => {
         if (!persisted || typeof persisted !== 'object') return persisted
         const raw = { ...(persisted as Record<string, unknown>) }
-        const v = fromVersion ?? 0
+        const v = fromVersion
         if (v < 1) {
           const p = raw as { activeWorkspaceId?: string; selectedEntityId?: string }
           raw.activeWorkspaceId = p.activeWorkspaceId ?? p.selectedEntityId ?? DEFAULT_WORKSPACE_ID

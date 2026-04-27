@@ -84,11 +84,6 @@ export default function LandingPage() {
 
       <main className="mx-auto max-w-5xl px-6 pb-24 pt-16 sm:pt-24">
         <div className="text-center sm:text-left">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 px-3 py-1 text-xs font-bold text-[var(--color-primary)]">
-            <IconZap className="shrink-0" size={14} />
-            <span>{t('landing.badge')}</span>
-          </div>
-
           <h1 className="max-w-3xl text-5xl font-black leading-[1.1] tracking-tight text-slate-950 sm:text-7xl">
             {t('landing.hero.line1')} <br />
             <span className="text-[var(--color-primary)]">{t('landing.hero.accent')}</span>
@@ -144,21 +139,6 @@ function FeatureCard({ icon, title, desc }: Readonly<{ icon: ReactNode; title: s
       <h3 className="mb-2 font-bold text-slate-900">{title}</h3>
       <p className="text-sm leading-relaxed text-slate-500">{desc}</p>
     </div>
-  )
-}
-
-function IconZap({ size, className }: Readonly<{ size: number; className?: string }>) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className={className}
-      aria-hidden
-    >
-      <path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z" />
-    </svg>
   )
 }
 

@@ -1,22 +1,16 @@
 # Payr — Accounts Payable MVP
 
-## What the product does
+## The Problem & Solution
 
-Payr is an internal finance tool for managing accounts payable workflows.
-It enables finance teams to receive vendor invoices, route them through an
-approval process, and track payments — replacing spreadsheet-based AP management
-with a structured, auditable workflow.
+Managing vendor invoices via spreadsheets is error prone and lacks auditability. Payr solves this by providing a structured workflow from invoice ingestion to payment confirmation, giving finance teams a single source of truth for their liabilities.
 
-## Workflows prioritized
+## Product Focus
 
-1. **Bill lifecycle** (Draft → Approval → Payment → History): The core AP loop.
-   Without this, nothing else matters.
-2. **Vendor management**: Bills need vendors. Keeping vendor data clean enables
-   filtering, reporting, and future payment routing.
-3. **AP Aging dashboard**: The primary artifact a CFO looks at. Shows outstanding
-   liabilities grouped by how overdue they are.
-4. **Payment tracking**: Separating Payment objects from Bills reflects real AP
-   architecture — the obligation (bill) and the transaction (payment) are distinct.
+For this MVP, I prioritized the "Golden Path" of accounts payable:
+
+- **Dynamic Bill Lifecycle:** A strict state machine (Draft → Approval → Payment) to ensure data integrity.
+- **CFO-Ready Reporting:** A real-time AP Aging Report and Cash Out trends for immediate financial visibility.
+- **Entity Scalability:** Built-in support for multi-company workspaces, recognizing that modern finance teams often manage multiple legal entities.
 
 ## What was left out and why
 
@@ -56,23 +50,20 @@ Demo credentials:
 
 ## Architecture decisions
 
-**State machine for bill status**: Transitions are validated server-side via a
-`transitionMap` object. Invalid transitions return 400. This prevents the frontend
-from corrupting bill state and makes the workflow explicit and auditable.
+**AI-assisted ingestion:** Integrated OpenAI's `gpt-4o-mini` to automate data entry. I implemented a graceful fallback: if no API key is provided, the system enters a "Simulation Mode" so the UI/UX flow can still be evaluated without external dependencies.
 
-**Bills vs Payments as separate tables**: A Bill represents the obligation
-(we owe vendor X money). A Payment represents the transaction (we sent money on date Y).
-Separating them allows partial payment history, failed payment retries, and clean
-accounting records.
+**Server-side state machine:** Persisted bill status is updated only through the NestJS API, which validates every action against a central `transitionMap` (same rules as in `bills.service.ts`). Invalid transitions return `400` and never reach the database. The SPA mirrors that map for which buttons to show and for unauthenticated local demo data only; once authenticated, a failed PATCH is not applied locally, so the server stays the source of truth.
 
-**Prisma + SQLite for MVP**: Removes the need for a separate DB container,
-making `docker compose up` simpler. Schema is portable to PostgreSQL with one
-config change.
+**Bills vs Payments as separate tables:** A Bill represents the obligation (we owe vendor X money). A Payment represents the transaction (we sent money on date Y). Separating them allows partial payment history, failed payment retries, and clean accounting records.
 
-**JWT authentication**: Stateless auth with a single Admin user.
-Role-based access control is the natural next layer.
+**Prisma + SQLite for MVP:** Removes the need for a separate DB container, making `docker compose up` simpler. Schema is portable to PostgreSQL with one config change.
 
-**AI invoice extraction**: Uses OpenAI Vision API to parse PDF invoices and
-pre-fill bill fields. Falls back to manual entry if no API key is configured.
+**JWT authentication:** Stateless auth with a single Admin user. Role-based access control is the natural next layer.
 
-**Multi-company workspaces**: Users can create multiple companies and switch between them via the sidebar selector. Designed for finance teams managing more than one legal entity.
+**Multi-company workspaces:** Users can create multiple companies and switch between them via the sidebar selector — aligned with the entity-scalability goal above.
+
+## Future Roadmap
+
+- **Real payment rails:** Integration with Stripe Connect or Finix for actual fund movement.
+- **Audit log:** A detailed history of who approved what and when for compliance.
+- **Advanced permissions:** Granular roles (Approver, Payer, Submitter).

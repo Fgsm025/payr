@@ -1,4 +1,5 @@
 import type { BillStatus } from '../../data/mockData'
+import { useTranslation } from '../../i18n/useI18n'
 
 type BadgeStatus = BillStatus | 'overdue'
 
@@ -13,17 +14,11 @@ const statusStyles: Record<BadgeStatus, string> = {
   overdue: 'bg-red-100 text-[var(--color-danger)]',
 }
 
-const statusLabels: Record<BadgeStatus, string> = {
-  draft: 'Draft',
-  pending_approval: 'Pending Approval',
-  approved: 'Approved',
-  scheduled: 'Scheduled',
-  paid: 'Paid',
-  rejected: 'Rejected',
-  archived: 'Archived',
-  overdue: 'Overdue',
-}
-
 export default function StatusBadge({ status }: { status: BadgeStatus }) {
-  return <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[status]}`}>{statusLabels[status]}</span>
+  const { t } = useTranslation()
+  return (
+    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[status]}`}>
+      {t(`status.${status}`)}
+    </span>
+  )
 }

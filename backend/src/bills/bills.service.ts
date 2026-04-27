@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from '../payments/payments.service';
 import { VendorsService } from '../vendors/vendors.service';
 
-type BillAction = 'submit' | 'approve' | 'reject' | 'pay' | 'archive';
+type BillAction = 'submit' | 'approve' | 'reject' | 'pay' | 'archive' | 'restore';
 
 @Injectable()
 export class BillsService {
@@ -14,14 +14,20 @@ export class BillsService {
     private readonly vendorsService: VendorsService,
   ) {}
 
-  private transitionMap: Record<BillStatus, Partial<Record<BillAction, BillStatus>>> = {
+  private withActor(comment: string | undefined, actorEmail?: string) {
+    if (!actorEmail) return comment;
+    const clean = comment?.trim();
+    return clean ? `[by:${actorEmail}] ${clean}` : `[by:${actorEmail}]`;
+  }
+
+  private readonly transitionMap: Record<BillStatus, Partial<Record<BillAction, BillStatus>>> = {
     draft: { submit: 'pending_approval', archive: 'archived' },
     pending_approval: { approve: 'approved', reject: 'rejected', archive: 'archived' },
     approved: { pay: 'paid', archive: 'archived' },
     scheduled: { pay: 'paid', archive: 'archived' },
     paid: {},
-    rejected: {},
-    archived: {},
+    rejected: { submit: 'pending_approval', archive: 'archived' },
+    archived: { restore: 'draft' },
   };
 
   findAll(entityId: string) {
@@ -52,6 +58,7 @@ export class BillsService {
       notes?: string;
       line_items?: Array<{ description: string; amount: number; category: string }>;
     },
+    actorEmail?: string,
   ) {
     let vendorId = input.vendorId;
 
@@ -91,7 +98,7 @@ export class BillsService {
             })) ?? [],
         },
         history: {
-          create: { status: 'draft', comment: 'Created via POST /bills' },
+          create: { status: 'draft', comment: this.withActor('Created via POST /bills', actorEmail) },
         },
       },
       include: { vendor: true, lineItems: true, history: true },
@@ -100,7 +107,118 @@ export class BillsService {
     return bill;
   }
 
-  async transitionStatus(entityId: string, id: string, input: { action: BillAction; comment?: string }) {
+  async resubmitRejected(
+    entityId: string,
+    id: string,
+    input: {
+      vendorId?: string;
+      invoiceNumber: string;
+      invoiceDate: string;
+      dueDate: string;
+      amount: number;
+      currency?: string;
+      notes?: string;
+      line_items?: Array<{ description: string; amount: number; category: string }>;
+    },
+    actorEmail?: string,
+  ) {
+    const bill = await this.prisma.bill.findFirst({ where: { id, entityId } });
+    if (!bill) throw new NotFoundException('Bill not found');
+    if (bill.status !== 'rejected') {
+      throw new BadRequestException('Only rejected bills can be resubmitted');
+    }
+
+    if (input.vendorId) {
+      const v = await this.prisma.vendor.findFirst({ where: { id: input.vendorId, entityId } });
+      if (!v) throw new BadRequestException('Vendor not found for this entity');
+    }
+
+    return this.prisma.bill.update({
+      where: { id },
+      data: {
+        vendorId: input.vendorId ?? bill.vendorId,
+        invoiceNumber: input.invoiceNumber,
+        invoiceDate: new Date(input.invoiceDate),
+        dueDate: new Date(input.dueDate),
+        totalAmount: input.amount,
+        currency: input.currency ?? bill.currency,
+        notes: input.notes,
+        status: 'pending_approval',
+        lineItems: {
+          deleteMany: {},
+          create:
+            input.line_items?.map((item) => ({
+              description: item.description,
+              quantity: 1,
+              unitPrice: item.amount,
+              amount: item.amount,
+              category: item.category,
+            })) ?? [],
+        },
+        history: {
+          create: { status: 'pending_approval', comment: this.withActor('Resubmitted after rejection', actorEmail) },
+        },
+      },
+      include: { vendor: true, lineItems: true, history: true },
+    });
+  }
+
+  async updateDraft(
+    entityId: string,
+    id: string,
+    input: {
+      vendorId?: string;
+      invoiceNumber: string;
+      invoiceDate: string;
+      dueDate: string;
+      amount: number;
+      currency?: string;
+      notes?: string;
+      line_items?: Array<{ description: string; amount: number; category: string }>;
+    },
+    actorEmail?: string,
+  ) {
+    const bill = await this.prisma.bill.findFirst({ where: { id, entityId } });
+    if (!bill) throw new NotFoundException('Bill not found');
+    if (bill.status !== 'draft') {
+      throw new BadRequestException('Only draft bills can be edited');
+    }
+
+    if (input.vendorId) {
+      const v = await this.prisma.vendor.findFirst({ where: { id: input.vendorId, entityId } });
+      if (!v) throw new BadRequestException('Vendor not found for this entity');
+    }
+
+    return this.prisma.bill.update({
+      where: { id },
+      data: {
+        vendorId: input.vendorId ?? bill.vendorId,
+        invoiceNumber: input.invoiceNumber,
+        invoiceDate: new Date(input.invoiceDate),
+        dueDate: new Date(input.dueDate),
+        totalAmount: input.amount,
+        currency: input.currency ?? bill.currency,
+        notes: input.notes,
+        lineItems: {
+          deleteMany: {},
+          create:
+            input.line_items?.map((item) => ({
+              description: item.description,
+              quantity: 1,
+              unitPrice: item.amount,
+              amount: item.amount,
+              category: item.category,
+            })) ?? [],
+        },
+        history: {
+          create: { status: 'draft', comment: this.withActor('Draft edited', actorEmail) },
+        },
+      },
+      include: { vendor: true, lineItems: true, history: true },
+    });
+  }
+
+  async transitionStatus(entityId: string, id: string, input: { action: BillAction; comment?: string; actorEmail?: string }) {
     const bill = await this.prisma.bill.findFirst({ where: { id, entityId } });
     if (!bill) throw new NotFoundException('Bill not found');
 
@@ -116,7 +234,7 @@ export class BillsService {
       data: {
         status: nextStatus,
         history: {
-          create: { status: nextStatus, comment: input.comment },
+          create: { status: nextStatus, comment: this.withActor(input.comment, input.actorEmail) },
         },
       },
       include: { vendor: true, lineItems: true, history: true },
@@ -138,5 +256,14 @@ export class BillsService {
       throw new BadRequestException('Only pending_approval patch is supported');
     }
     return this.transitionStatus(entityId, id, { action: 'submit' });
+  }
+
+  async removeDraft(entityId: string, id: string) {
+    const bill = await this.prisma.bill.findFirst({ where: { id, entityId } });
+    if (!bill) throw new NotFoundException('Bill not found');
+    if (bill.status !== 'draft') {
+      throw new BadRequestException('Only draft bills can be deleted');
+    }
+    await this.prisma.bill.delete({ where: { id } });
   }
 }

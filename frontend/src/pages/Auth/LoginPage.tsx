@@ -1,9 +1,11 @@
 import { FormEvent, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Button from '../../components/ui/Button'
+import { useTranslation } from '../../i18n/useI18n'
 import { useAppStore } from '../../store/useAppStore'
 
 export default function LoginPage() {
+  const { t } = useTranslation()
   const [email, setEmail] = useState('admin@payr.co')
   const [password, setPassword] = useState('admin123')
   const [error, setError] = useState('')
@@ -31,6 +33,12 @@ export default function LoginPage() {
             pay<span className="text-[var(--color-primary)]">r.</span>
           </h1>
           <p className="mt-2 text-sm text-slate-500">Sign in to continue to your finance workspace.</p>
+          <Link
+            to="/"
+            className="mt-3 inline-block text-sm font-semibold text-[var(--color-primary)] hover:underline"
+          >
+            {t('auth.login.backHome')}
+          </Link>
         </div>
         <div className="mt-6 space-y-4">
           <label className="block text-sm">

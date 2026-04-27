@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import OpenAI from 'openai';
 import { PDFParse } from 'pdf-parse';
 
@@ -49,8 +49,6 @@ function parseExtractedJson(content: string): ExtractedInvoice {
 
 @Injectable()
 export class OcrService {
-  private readonly logger = new Logger(OcrService.name);
-
   async extractInvoiceFromFile(file: { buffer: Buffer; mimetype: string }): Promise<ExtractedInvoice> {
     if (!file?.buffer || !file?.mimetype) {
       throw new BadRequestException('File is required');
@@ -58,7 +56,6 @@ export class OcrService {
 
     const apiKey = process.env.OPENAI_API_KEY?.trim();
     if (!apiKey) {
-      this.logger.log('OpenAI Key not found, using simulation mode');
       await delay(2000);
       return { ...SIMULATED_INVOICE };
     }

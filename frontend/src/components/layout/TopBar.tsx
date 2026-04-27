@@ -82,11 +82,19 @@ export default function TopBar({ title, showNewBill, onOpenMobileMenu, subtitle 
         </Button>
         <Link
           to="/settings"
-          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700 transition hover:bg-slate-300"
+          className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-xs font-bold transition ${
+            authUser?.avatarDataUrl
+              ? 'overflow-hidden border border-[var(--color-border)] hover:opacity-90'
+              : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+          }`}
           aria-label={t('topbar.account.settings')}
           title={t('topbar.account.settings')}
         >
-          {initials}
+          {authUser?.avatarDataUrl ? (
+            <img src={authUser.avatarDataUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            initials
+          )}
         </Link>
         {showNewBill && (
           <Button className="shadow-sm" onClick={openCreateBillModal}>

@@ -49,6 +49,30 @@ body {
   box-sizing: border-box;
 }
 
+/* Main content scroll: thin track, primary-colored thumb */
+.app-main-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary) transparent;
+}
+
+.app-main-scroll::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.app-main-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.app-main-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--color-primary);
+  border-radius: 9999px;
+}
+
+.app-main-scroll::-webkit-scrollbar-thumb:hover {
+  filter: brightness(0.9);
+}
+
 .app-shell,
 .dashboard-surface,
 .sidebar-panel,

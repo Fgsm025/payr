@@ -7,6 +7,8 @@ type ConfirmDialogProps = Readonly<{
   description: string
   confirmLabel?: string
   cancelLabel?: string
+  confirmVariant?: 'primary' | 'danger'
+  confirmFirst?: boolean
   onConfirm: () => void
   onCancel: () => void
 }>
@@ -17,6 +19,8 @@ export default function ConfirmDialog({
   description,
   confirmLabel = 'Delete',
   cancelLabel = 'Cancel',
+  confirmVariant = 'danger',
+  confirmFirst = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -25,12 +29,25 @@ export default function ConfirmDialog({
       <div className="space-y-5">
         <p className="text-sm text-slate-600">{description}</p>
         <div className="flex items-center justify-end gap-2">
-          <Button type="button" variant="secondary" onClick={onCancel}>
-            {cancelLabel}
-          </Button>
-          <Button type="button" variant="danger" onClick={onConfirm}>
-            {confirmLabel}
-          </Button>
+          {confirmFirst ? (
+            <>
+              <Button type="button" variant={confirmVariant} onClick={onConfirm}>
+                {confirmLabel}
+              </Button>
+              <Button type="button" variant="secondary" onClick={onCancel}>
+                {cancelLabel}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button type="button" variant="secondary" onClick={onCancel}>
+                {cancelLabel}
+              </Button>
+              <Button type="button" variant={confirmVariant} onClick={onConfirm}>
+                {confirmLabel}
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </Modal>

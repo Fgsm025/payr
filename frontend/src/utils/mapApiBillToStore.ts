@@ -19,6 +19,16 @@ type ApiHistoryEntry = {
   createdAt?: string
 }
 
+function splitActorAndComment(raw: string | null | undefined): { actor?: string; comment?: string } {
+  if (!raw) return {}
+  const m = /^\[by:([^\]]+)\]\s*(.*)$/i.exec(raw.trim())
+  if (!m) return { comment: raw }
+  return {
+    actor: m[1],
+    comment: m[2] || undefined,
+  }
+}
+
 type ApiLineItem = {
   description: string
   amount: number
@@ -49,10 +59,12 @@ export function mapApiBillToStore(raw: ApiBillPayload): Bill {
   const historyFromApi =
     raw.history?.map((h) => {
       const st = isBillStatus(h.status) ? h.status : 'draft'
+      const parsed = splitActorAndComment(h.comment ?? undefined)
       return {
         status: st,
         date: h.createdAt ? new Date(h.createdAt).toISOString() : new Date().toISOString(),
-        comment: h.comment ?? undefined,
+        comment: parsed.comment,
+        actor: parsed.actor,
       }
     }) ?? []
 
