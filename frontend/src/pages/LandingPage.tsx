@@ -79,7 +79,7 @@ export default function LandingPage() {
                 {t('landing.cta.signin')}
               </Link>
               <Link
-                to="/register"
+                to="/login"
                 className="rounded-2xl bg-[var(--color-primary)] px-6 py-2.5 text-white transition-all hover:brightness-110"
               >
                 {t('landing.new.navCta')}
@@ -114,7 +114,7 @@ export default function LandingPage() {
             </p>
 
             <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Link to="/register" className={btnPrimary}>
+              <Link to="/login" className={btnPrimary}>
                 <span>{t('landing.new.heroPrimaryCta')}</span>
                 <ArrowRight size={22} />
               </Link>
@@ -239,7 +239,7 @@ export default function LandingPage() {
           <p className="mb-10 text-2xl text-slate-600">{t('landing.new.finalCtaDesc')}</p>
 
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
-            <Link to="/register" className={btnPrimary}>
+            <Link to="/login" className={btnPrimary}>
               {t('landing.new.finalPrimaryCta')}
               <ArrowRight size={24} />
             </Link>
