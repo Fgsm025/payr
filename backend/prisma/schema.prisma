@@ -16,10 +16,22 @@ enum BillStatus {
   archived
 }
 
+enum SyncStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
 enum PaymentMethod {
   ach
   wire
   check
+}
+
+enum PaymentStatus {
+  INITIATED
+  SUCCESS
+  FAILED
 }
 
 model User {
@@ -62,6 +74,11 @@ model Bill {
   totalAmount   Float
   currency      String            @default("USD")
   notes         String?
+  syncStatus    SyncStatus        @default(PENDING)
+  /// Display id for QuickBooks-style tooltips (e.g. "8829")
+  erpSyncRef    String?
+  missingInfo   Boolean           @default(false)
+  isArchived    Boolean           @default(false)
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   lineItems     BillLineItem[]
@@ -91,6 +108,7 @@ model Payment {
   paymentDate DateTime
   method      PaymentMethod @default(ach)
   reference   String?
+  status      PaymentStatus  @default(SUCCESS)
   createdAt   DateTime      @default(now())
 }
 

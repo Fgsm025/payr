@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { BillStatus } from '@prisma/client';
+import { BillStatus, SyncStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from '../payments/payments.service';
 import { VendorsService } from '../vendors/vendors.service';
@@ -28,6 +28,33 @@ export class BillsService {
     if (!actorEmail) return comment;
     const clean = comment?.trim();
     return clean ? `[by:${actorEmail}] ${clean}` : `[by:${actorEmail}]`;
+  }
+
+  /** Simulated QBO document id for tooltips. */
+  private nextErpSyncRef(): string {
+    return String(1_000 + Math.floor(Math.random() * 9_000));
+  }
+
+  private erpSyncFieldsForTransition(
+    bill: { status: BillStatus; erpSyncRef: string | null },
+    action: BillAction,
+  ): { syncStatus?: SyncStatus; erpSyncRef?: string | null } {
+    if (action === 'reject') {
+      return { syncStatus: 'FAILED', erpSyncRef: null };
+    }
+    if (action === 'approve') {
+      return { syncStatus: 'SUCCESS', erpSyncRef: this.nextErpSyncRef() };
+    }
+    if (action === 'pay') {
+      return {
+        syncStatus: 'SUCCESS',
+        erpSyncRef: bill.erpSyncRef ?? this.nextErpSyncRef(),
+      };
+    }
+    if (action === 'submit' && bill.status === 'rejected') {
+      return { syncStatus: 'PENDING', erpSyncRef: null };
+    }
+    return {};
   }
 
   private readonly transitionMap: Record<
@@ -81,6 +108,7 @@ export class BillsService {
       amount: number;
       currency?: string;
       notes?: string;
+      missingInfo?: boolean;
       line_items?: Array<{
         description: string;
         amount: number;
@@ -120,6 +148,7 @@ export class BillsService {
         totalAmount: input.amount,
         currency: input.currency ?? 'USD',
         notes: input.notes,
+        missingInfo: input.missingInfo ?? false,
         status: 'draft',
         lineItems: {
           create:
@@ -134,7 +163,7 @@ export class BillsService {
         history: {
           create: {
             status: 'draft',
-            comment: this.withActor('Created via POST /bills', actorEmail),
+            comment: this.withActor('Bill created', actorEmail),
           },
         },
       },
@@ -186,6 +215,9 @@ export class BillsService {
         totalAmount: input.amount,
         currency: input.currency ?? bill.currency,
         notes: input.notes,
+        missingInfo: false,
+        syncStatus: 'PENDING',
+        erpSyncRef: null,
         status: 'pending_approval',
         lineItems: {
           deleteMany: {},
@@ -251,6 +283,7 @@ export class BillsService {
         totalAmount: input.amount,
         currency: input.currency ?? bill.currency,
         notes: input.notes,
+        missingInfo: false,
         lineItems: {
           deleteMany: {},
           create:
@@ -288,10 +321,21 @@ export class BillsService {
       );
     }
 
+    let archiveState: boolean | undefined;
+    if (input.action === 'archive') archiveState = true;
+    if (input.action === 'restore') archiveState = false;
+
+    const erp = this.erpSyncFieldsForTransition(
+      { status: bill.status, erpSyncRef: bill.erpSyncRef },
+      input.action,
+    );
+
     const updated = await this.prisma.bill.update({
       where: { id },
       data: {
         status: nextStatus,
+        isArchived: archiveState,
+        ...erp,
         history: {
           create: {
             status: nextStatus,
@@ -302,8 +346,17 @@ export class BillsService {
       include: { vendor: true, lineItems: true, history: true },
     });
 
-    if (input.action === 'pay') {
+    if (input.action === 'approve') {
       await this.paymentsService.createPaymentForBill({
+        billId: updated.id,
+        amount: updated.totalAmount,
+        reference: updated.invoiceNumber,
+        status: 'INITIATED',
+      });
+    }
+
+    if (input.action === 'pay') {
+      await this.paymentsService.markLatestPaymentSuccessOrCreate({
         billId: updated.id,
         amount: updated.totalAmount,
         reference: updated.invoiceNumber,
@@ -327,5 +380,31 @@ export class BillsService {
       throw new BadRequestException('Only draft bills can be deleted');
     }
     await this.prisma.bill.delete({ where: { id } });
+  }
+
+  async cancelPayment(entityId: string, id: string, actorEmail?: string) {
+    const bill = await this.prisma.bill.findFirst({ where: { id, entityId } });
+    if (!bill) throw new NotFoundException('Bill not found');
+    if (bill.status !== 'approved' && bill.status !== 'paid') {
+      throw new BadRequestException(
+        'Only approved or paid bills can cancel payment',
+      );
+    }
+
+    await this.paymentsService.failLatestPaymentForBill(id);
+
+    return this.prisma.bill.update({
+      where: { id },
+      data: {
+        status: 'approved',
+        history: {
+          create: {
+            status: 'approved',
+            comment: this.withActor('Payment cancelled', actorEmail),
+          },
+        },
+      },
+      include: { vendor: true, lineItems: true, history: true },
+    });
   }
 }

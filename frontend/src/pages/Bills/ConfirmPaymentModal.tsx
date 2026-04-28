@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { CheckCircle2 } from 'lucide-react'
 import Modal from '../../components/ui/Modal'
 import Button from '../../components/ui/Button'
+import { useTranslation } from '../../i18n/useI18n'
 
 type ConfirmPaymentModalProps = Readonly<{
   isOpen: boolean
@@ -20,6 +21,7 @@ export default function ConfirmPaymentModal({
   onClose,
   onConfirm,
 }: ConfirmPaymentModalProps) {
+  const { t } = useTranslation()
   const [paymentMethodId, setPaymentMethodId] = useState('')
   const [scheduledDate, setScheduledDate] = useState(dueDate)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -42,29 +44,29 @@ export default function ConfirmPaymentModal({
   }
 
   return (
-    <Modal title='Confirm Payment' isOpen={isOpen} onClose={onClose}>
+    <Modal title={t('bills.payment.confirmTitle')} isOpen={isOpen} onClose={onClose}>
       {isSuccess ? (
         <div className='flex flex-col items-center justify-center gap-3 py-4 text-center'>
           <CheckCircle2 size={58} className='text-emerald-500' />
-          <p className='text-xl font-semibold text-slate-900'>Payment successful</p>
+          <p className='text-xl font-semibold text-slate-900'>{t('bills.payment.successTitle')}</p>
           <p className='max-w-sm text-sm text-slate-500'>
-            The payment was processed correctly. You can now continue reviewing the remaining bills.
+            {t('bills.payment.successBody')}
           </p>
           <Button type='button' className='mt-2' onClick={onClose}>
-            Done
+            {t('bills.payment.done')}
           </Button>
         </div>
       ) : (
         <div className='space-y-4'>
           <div className='rounded-xl border border-[var(--color-border)] bg-slate-50 p-4'>
-            <p className='text-xs uppercase tracking-wide text-slate-500'>Amount to pay</p>
+            <p className='text-xs uppercase tracking-wide text-slate-500'>{t('bills.payment.amountToPay')}</p>
             <p className='mt-1 text-2xl font-semibold text-slate-900'>
               ${amount.toLocaleString()}
             </p>
           </div>
 
           <label className='block space-y-1'>
-            <span className='text-sm font-medium text-slate-700'>Pay with card</span>
+            <span className='text-sm font-medium text-slate-700'>{t('bills.payment.payWithCard')}</span>
             <select
               value={paymentMethodId}
               onChange={(event) => setPaymentMethodId(event.target.value)}
@@ -79,7 +81,7 @@ export default function ConfirmPaymentModal({
           </label>
 
           <label className='block space-y-1'>
-            <span className='text-sm font-medium text-slate-700'>Scheduled date</span>
+            <span className='text-sm font-medium text-slate-700'>{t('bills.payment.scheduledDate')}</span>
             <input
               type='date'
               value={scheduledDate}
@@ -90,10 +92,10 @@ export default function ConfirmPaymentModal({
 
           <div className='flex justify-end gap-2 pt-1'>
             <Button type='button' variant='secondary' onClick={onClose} disabled={isSubmitting}>
-              Cancel
+              {t('bills.payment.cancel')}
             </Button>
             <Button type='button' onClick={handleConfirm} disabled={isSubmitting || !paymentMethodId}>
-              {isSubmitting ? 'Processing...' : 'Confirm Payment'}
+              {isSubmitting ? t('bills.payment.processing') : t('bills.payment.confirmCta')}
             </Button>
           </div>
         </div>

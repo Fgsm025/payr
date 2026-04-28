@@ -24,6 +24,11 @@ export type Bill = {
   status: BillStatus
   paidDate?: string
   notes?: string
+  syncStatus?: 'PENDING' | 'SUCCESS' | 'FAILED'
+  /** Shown in ERP sync tooltip as QBO ref (from API `erpSyncRef`). */
+  erpSyncRef?: string
+  missingInfo?: boolean
+  isArchived?: boolean
   lineItems?: Array<{ description: string; amount: number; category: string }>
   history?: Array<{ status: BillStatus; date: string; comment?: string; actor?: string }>
 }

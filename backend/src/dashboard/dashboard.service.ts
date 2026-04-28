@@ -22,6 +22,7 @@ export class DashboardService {
   async getSummary(entityId: string) {
     const bills = await this.billsService.findAll(entityId);
     const closed = new Set(['paid', 'rejected', 'archived']);
+    const payableStatuses = new Set(['approved', 'scheduled']);
 
     const startOfDay = (d: Date) => {
       const x = new Date(d);
@@ -31,7 +32,7 @@ export class DashboardService {
     const today = startOfDay(new Date());
 
     const totalPayable = bills
-      .filter((bill) => !closed.has(bill.status))
+      .filter((bill) => payableStatuses.has(bill.status))
       .reduce((sum, bill) => sum + bill.totalAmount, 0);
 
     const overdue = bills.filter((bill) => {

@@ -19,13 +19,15 @@ export default function Layout() {
   const snack = useAppStore((state) => state.snack)
   const clearSnack = useAppStore((state) => state.clearSnack)
   const { t } = useI18n()
+  const layoutPageTitleOverride = useAppStore((s) => s.layoutPageTitleOverride)
   const titleKey = useMemo(() => {
     const path = location.pathname
+    if (path === '/bills/new') return 'page.billNew'
     if (/^\/bills\/[^/]+\/edit$/.test(path)) return 'page.billEdit'
     if (/^\/bills\/[^/]+$/.test(path)) return 'page.billDetails'
     return pageTitleKeys[path] ?? 'page.default'
   }, [location.pathname])
-  const title = t(titleKey)
+  const title = layoutPageTitleOverride ?? t(titleKey)
   const subtitle = location.pathname === '/payments' ? 'Completed bill payments.' : undefined
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const snackToneClasses: Record<'success' | 'error' | 'info', string> = {

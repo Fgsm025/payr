@@ -9,6 +9,10 @@ export type ApiBillPayload = {
   dueDate: string | Date
   totalAmount: number
   notes?: string | null
+  syncStatus?: 'PENDING' | 'SUCCESS' | 'FAILED'
+  erpSyncRef?: string | null
+  missingInfo?: boolean
+  isArchived?: boolean
   lineItems?: ApiLineItem[]
   history?: ApiHistoryEntry[]
 }
@@ -80,6 +84,10 @@ export function mapApiBillToStore(raw: ApiBillPayload): Bill {
     status,
     paidDate: status === 'paid' ? toYmd(paidEntry?.date) || undefined : undefined,
     notes: raw.notes ?? undefined,
+    syncStatus: raw.syncStatus ?? 'PENDING',
+    erpSyncRef: raw.erpSyncRef ?? undefined,
+    missingInfo: Boolean(raw.missingInfo),
+    isArchived: Boolean(raw.isArchived),
     lineItems:
       raw.lineItems && raw.lineItems.length > 0
         ? raw.lineItems.map((li) => ({

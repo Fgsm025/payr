@@ -59,6 +59,7 @@ export class BillsController {
       amount: number;
       currency?: string;
       notes?: string;
+      missingInfo?: boolean;
       line_items?: Array<{
         description: string;
         amount: number;
@@ -138,6 +139,19 @@ export class BillsController {
       requireEntityId(entityIdHeader),
       id,
       body,
+      req.user?.email,
+    );
+  }
+
+  @Patch(':id/cancel-payment')
+  cancelPayment(
+    @Headers('x-entity-id') entityIdHeader: string,
+    @Req() req: { user?: { email?: string } },
+    @Param('id') id: string,
+  ) {
+    return this.billsService.cancelPayment(
+      requireEntityId(entityIdHeader),
+      id,
       req.user?.email,
     );
   }

@@ -30,6 +30,8 @@ export default function SettingsPage() {
   const paymentMethods = useAppStore((state) => state.paymentMethods)
   const addPaymentMethod = useAppStore((state) => state.addPaymentMethod)
   const deletePaymentMethod = useAppStore((state) => state.deletePaymentMethod)
+  const erpAutoSyncEnabled = useAppStore((state) => state.erpAutoSyncEnabled)
+  const setErpAutoSyncEnabled = useAppStore((state) => state.setErpAutoSyncEnabled)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [profileName, setProfileName] = useState(authUser?.name ?? 'Admin User')
   const [profileEmail, setProfileEmail] = useState(authUser?.email ?? 'admin@payr.co')
@@ -280,6 +282,26 @@ export default function SettingsPage() {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-sm">
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-slate-900">{t('settings.integrations.title')}</h3>
+          <p className="mt-1 text-sm text-slate-500">{t('settings.integrations.subtitle')}</p>
+        </div>
+        <div className="flex items-center justify-between rounded-xl border border-[var(--color-border)] bg-slate-50 px-4 py-3">
+          <div>
+            <p className="text-sm font-medium text-slate-800">{t('settings.integrations.erpSync')}</p>
+            <p className="text-xs text-slate-500">{t('settings.integrations.erpSyncHint')}</p>
+          </div>
+          <input
+            type="checkbox"
+            checked={erpAutoSyncEnabled}
+            onChange={(e) => setErpAutoSyncEnabled(e.target.checked)}
+            aria-label={t('settings.integrations.erpSync')}
+            className="h-4 w-4"
+          />
+        </div>
       </div>
 
       <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-sm">

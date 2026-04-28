@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Download } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Modal from '../../components/ui/Modal'
@@ -11,6 +11,8 @@ import type { Bill } from '../../data/mockData'
 import { useWorkspaceBillQuery, useWorkspaceVendorsQuery } from '@/hooks/useWorkspaceQueries'
 import { mapApiBillToStore } from '@/utils/mapApiBillToStore'
 import { useTranslation } from '../../i18n/useI18n'
+import type { BillsNavState } from '@/lib/billsTab'
+import { billsListPath } from '@/lib/billsTab'
 
 function formatTimelineDate(iso: string) {
   try {
@@ -86,6 +88,9 @@ export default function BillDetailPage() {
   const { t } = useTranslation()
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  const listTab = (location.state as BillsNavState | null)?.billsTab
+  const listTabState: BillsNavState = { billsTab: listTab }
   const billQuery = useWorkspaceBillQuery(id)
   const vendorsQuery = useWorkspaceVendorsQuery()
   const vendors = vendorsQuery.data ?? []
@@ -100,10 +105,10 @@ export default function BillDetailPage() {
 
   const timeline = useMemo(() => (bill ? buildTimeline(bill) : []), [bill])
 
-  if (!id) return <Navigate to="/bills" replace />
-  if (billQuery.isError) return <Navigate to="/bills" replace />
+  if (!id) return <Navigate to={billsListPath(listTab)} replace />
+  if (billQuery.isError) return <Navigate to={billsListPath(listTab)} replace />
   if (billQuery.isPending && !bill) return <BillDetailSkeleton />
-  if (!bill) return <Navigate to="/bills" replace />
+  if (!bill) return <Navigate to={billsListPath(listTab)} replace />
 
   const vendor = vendors.find((item) => item.id === bill.vendorId)
   const lineItems = bill.lineItems ?? []
@@ -112,7 +117,7 @@ export default function BillDetailPage() {
   const onSubmitForApproval = async () => {
     const ok = await transitionBill(bill.id, 'submit')
     if (ok) {
-      navigate('/bills?tab=drafts', { replace: true })
+      navigate(billsListPath('for_approval'), { replace: true })
     }
   }
 
@@ -122,7 +127,7 @@ export default function BillDetailPage() {
         <Button variant="success" onClick={() => setIsSubmitConfirmOpen(true)}>
           {hasRejectedHistory ? t('bills.submit.confirm.resubmitCta') : t('bills.submit.confirm.submitCta')}
         </Button>
-        <Button variant="secondary" onClick={() => navigate(`/bills/${bill.id}/edit`)}>
+        <Button variant="secondary" onClick={() => navigate(`/bills/${bill.id}/edit`, { state: listTabState })}>
           {t('bills.action.edit')}
         </Button>
       </>
@@ -130,43 +135,29 @@ export default function BillDetailPage() {
     pending_approval: (
       <>
         <Button variant="success" onClick={() => setIsApproveModalOpen(true)}>
-          Approve
+          {t('bills.action.approve')}
         </Button>
         <Button variant="danger" onClick={() => setIsRejectModalOpen(true)}>
-          Reject
+          {t('bills.action.reject')}
         </Button>
       </>
     ),
-    approved: (
-      <Button variant="success" onClick={() => setIsPayModalOpen(true)}>
-        Pay Bill
-      </Button>
-    ),
+    approved: <Button variant="success" onClick={() => setIsPayModalOpen(true)}>{t('bills.detail.payBill')}</Button>,
     scheduled: (
       <Button variant="success" onClick={() => setIsPayModalOpen(true)}>
-        Pay Bill
+        {t('bills.detail.payBill')}
       </Button>
     ),
-    paid: (
-      <Button variant="primary" onClick={() => navigate('/bills?tab=history')}>
-        History
-      </Button>
-    ),
+    paid: null,
     rejected: (
       <>
         <Button variant="success" onClick={() => setIsSubmitConfirmOpen(true)}>
-          {t('bills.submit.confirm.submitCta')}
+          {hasRejectedHistory
+            ? t('bills.submit.confirm.resubmitCta')
+            : t('bills.submit.confirm.submitCta')}
         </Button>
-        <Button variant="secondary" onClick={() => navigate(`/bills/${bill.id}/edit`)}>
+        <Button variant="secondary" onClick={() => navigate(`/bills/${bill.id}/edit`, { state: listTabState })}>
           {t('bills.action.edit')}
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={async () => {
-            await transitionBill(bill.id, 'archive')
-          }}
-        >
-          Archive
         </Button>
       </>
     ),
@@ -312,7 +303,7 @@ export default function BillDetailPage() {
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" className="inline-flex items-center gap-2 whitespace-nowrap" onClick={onDownloadPdf}>
               <Download size={16} />
-              Download PDF
+              {t('bills.detail.downloadPdf')}
             </Button>
           </div>
         </div>
@@ -320,25 +311,25 @@ export default function BillDetailPage() {
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <div className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
             <p className="text-sm">
-              <span className="font-semibold text-slate-800">Amount</span>
+              <span className="font-semibold text-slate-800">{t('bills.detail.amount')}</span>
               <span className="mt-0.5 block text-lg font-bold text-slate-900">${bill.amount.toLocaleString()}</span>
             </p>
             <p className="text-sm">
-              <span className="font-semibold text-slate-800">Due</span>
+              <span className="font-semibold text-slate-800">{t('bills.detail.due')}</span>
               <span className="mt-0.5 block text-slate-700">{bill.dueDate}</span>
             </p>
             <p className="text-sm">
-              <span className="font-semibold text-slate-800">Notes</span>
+              <span className="font-semibold text-slate-800">{t('bills.detail.notes')}</span>
               <span className="mt-0.5 block text-slate-600">{bill.notes?.trim() ? bill.notes : '—'}</span>
             </p>
           </div>
           <div className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
             <p className="text-sm">
-              <span className="font-semibold text-slate-800">Invoice</span>
+              <span className="font-semibold text-slate-800">{t('bills.detail.invoice')}</span>
               <span className="mt-0.5 block text-slate-700">{bill.invoiceDate}</span>
             </p>
             <p className="text-sm">
-              <span className="font-semibold text-slate-800">Vendor</span>
+              <span className="font-semibold text-slate-800">{t('bills.detail.vendor')}</span>
               <span className="mt-0.5 block text-slate-700">{vendor?.name ?? '—'}</span>
             </p>
           </div>
@@ -346,13 +337,13 @@ export default function BillDetailPage() {
 
         {lineItems.length > 0 && (
           <div className="mt-5">
-            <h4 className="mb-2 text-sm font-semibold text-slate-900">Line Items</h4>
+            <h4 className="mb-2 text-sm font-semibold text-slate-900">{t('bills.detail.lineItems')}</h4>
             <div className="overflow-hidden rounded-xl border border-[var(--color-border)]">
               <table className="w-full text-left text-sm">
                 <thead className="bg-[var(--color-surface)] text-xs font-semibold uppercase tracking-wide text-slate-600">
                   <tr>
-                    <th className="px-4 py-2">Description</th>
-                    <th className="px-4 py-2 text-right">Amount</th>
+                    <th className="px-4 py-2">{t('bills.detail.description')}</th>
+                    <th className="px-4 py-2 text-right">{t('bills.detail.amount')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -373,14 +364,14 @@ export default function BillDetailPage() {
 
         <div className="mt-5 flex flex-wrap gap-2 border-t border-[var(--color-border)] pt-5">
           {actionButtons[bill.status as keyof typeof actionButtons] ?? null}
-          <Button variant="secondary" onClick={() => navigate('/bills')}>
-            Back
+          <Button variant="secondary" onClick={() => navigate(billsListPath(listTab))}>
+            {t('bills.detail.back')}
           </Button>
         </div>
       </div>
 
       <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5 md:p-6">
-        <h4 className="mb-4 text-sm font-semibold text-slate-900">Status Timeline</h4>
+        <h4 className="mb-4 text-sm font-semibold text-slate-900">{t('bills.detail.statusTimeline')}</h4>
         <div className="space-y-3">
           {timeline.map((entry, index) => (
             <div
@@ -391,7 +382,7 @@ export default function BillDetailPage() {
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-slate-900">{t(`status.${entry.status}`)}</p>
                 <p className="text-xs text-slate-500">{formatTimelineDate(entry.date)}</p>
-                {entry.actor ? <p className="mt-1 text-xs text-slate-500">By {entry.actor}</p> : null}
+                {entry.actor ? <p className="mt-1 text-xs text-slate-500">{t('bills.detail.byActor', { actor: entry.actor })}</p> : null}
                 {normalizeTimelineComment(entry.comment, t) ? (
                   <p className="mt-1 text-xs text-slate-600">{normalizeTimelineComment(entry.comment, t)}</p>
                 ) : null}
@@ -418,7 +409,7 @@ export default function BillDetailPage() {
                 const ok = await transitionBill(bill.id, 'approve')
                 if (!ok) return
                 setIsApproveModalOpen(false)
-                navigate('/bills?tab=for_approval', { replace: true })
+                navigate(billsListPath('for_payment'), { replace: true })
               }}
             >
               {t('bills.approve.confirm')}
@@ -457,9 +448,12 @@ export default function BillDetailPage() {
               type="button"
               variant="danger"
               onClick={async () => {
-                await transitionBill(bill.id, 'reject', rejectComment.trim())
+                const ok = await transitionBill(bill.id, 'reject', rejectComment.trim())
                 setIsRejectModalOpen(false)
                 setRejectComment('')
+                if (ok) {
+                  navigate(billsListPath('drafts'), { replace: true })
+                }
               }}
             >
               {t('bills.reject.confirm')}

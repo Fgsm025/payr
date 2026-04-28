@@ -37,7 +37,8 @@ export const translations: Record<Locale, TranslationDict> = {
     'auth.login.backHome': 'Back to home',
 
     'landing.tagline': 'Bills, vendors, and payments in one workspace.',
-    'landing.sub': 'A calm finance hub for teams managing multiple legal entities.',
+    'landing.sub':
+      'A calm finance hub for teams managing multiple legal entities.',
     'landing.hero.line1': 'Modern bill pay for',
     'landing.hero.accent': 'finance teams.',
     'landing.cta.signin': 'Sign in',
@@ -59,7 +60,8 @@ export const translations: Record<Locale, TranslationDict> = {
       'Say goodbye to spreadsheets, endless email threads, and approval chaos. One platform to track, approve, and pay all your bills - beautifully.',
     'landing.new.heroPrimaryCta': 'Start free today',
     'landing.new.heroSecondaryCta': 'Sign in',
-    'landing.new.microTrust': 'No credit card - Setup in under 2 minutes - 14-day full access',
+    'landing.new.microTrust':
+      'No credit card - Setup in under 2 minutes - 14-day full access',
     'landing.new.demoTitle': 'Interactive demo',
     'landing.new.demoSubtitle': 'See payr. in action (coming soon)',
     'landing.new.totalDueLabel': 'Total due this month',
@@ -67,12 +69,14 @@ export const translations: Record<Locale, TranslationDict> = {
     'landing.new.trustTitle': 'Trusted by fast-growing teams',
     'landing.new.trustBrands': 'Notion • Vercel • Linear • Ramp • Brex',
     'landing.new.featuresTitle': 'Everything your finance team needs',
-    'landing.new.featuresDesc': 'Powerful yet simple tools to eliminate bill chaos once and for all.',
+    'landing.new.featuresDesc':
+      'Powerful yet simple tools to eliminate bill chaos once and for all.',
     'landing.new.feature1Title': 'Smart Approval Workflows',
     'landing.new.feature1Desc':
       'Automatic routing based on amount, vendor, or department. Full audit trail included.',
     'landing.new.feature2Title': 'Real-time Dashboard',
-    'landing.new.feature2Desc': 'See every bill, every approval, and every payment in one beautiful live view.',
+    'landing.new.feature2Desc':
+      'See every bill, every approval, and every payment in one beautiful live view.',
     'landing.new.feature3Title': 'Instant Payments',
     'landing.new.feature3Desc':
       'Pay any vendor via ACH, wire, or virtual card in seconds - with zero fees on many methods.',
@@ -81,10 +85,12 @@ export const translations: Record<Locale, TranslationDict> = {
     'landing.new.stat3Label': 'bills processed monthly',
     'landing.new.stat4Label': 'from 180+ teams',
     'landing.new.finalCtaTitle': 'Ready to kill bill chaos?',
-    'landing.new.finalCtaDesc': 'Join hundreds of teams already saving 15+ hours per week.',
+    'landing.new.finalCtaDesc':
+      'Join hundreds of teams already saving 15+ hours per week.',
     'landing.new.finalPrimaryCta': 'Create free account',
     'landing.new.finalSecondaryCta': 'I already have an account',
-    'landing.new.finalTrust': 'Zero risk. Cancel anytime. Your first 50 invoices are on us.',
+    'landing.new.finalTrust':
+      'Zero risk. Cancel anytime. Your first 50 invoices are on us.',
 
     'help.p1':
       'Payr helps you manage bills, vendors, approvals, and payments in one workspace. If something does not look right—especially after AI invoice extraction—double-check the extracted fields before submitting.',
@@ -111,7 +117,10 @@ export const translations: Record<Locale, TranslationDict> = {
     'page.payments': 'Payments',
     'page.settings': 'Settings',
     'page.billDetails': 'Bill Details',
+    'page.billNew': 'New Bill',
     'page.billEdit': 'Edit Bill',
+    'page.billEditDraft': 'Edit Draft Bill',
+    'page.billEditRejected': 'Edit Rejected Bill',
     'page.default': 'Payr',
 
     'dashboard.hero.overduePayment': 'Overdue payment',
@@ -119,7 +128,8 @@ export const translations: Record<Locale, TranslationDict> = {
     'dashboard.hero.noUpcomingPayment': 'No upcoming payment',
     'dashboard.hero.noApprovedBill': 'No bill in approved or scheduled status',
     'dashboard.hero.wasDueOverdueOne': 'Was due {{date}} · 1 day overdue',
-    'dashboard.hero.wasDueOverdueMany': 'Was due {{date}} · {{count}} days overdue',
+    'dashboard.hero.wasDueOverdueMany':
+      'Was due {{date}} · {{count}} days overdue',
     'dashboard.hero.dueToday': 'Due today',
     'dashboard.hero.dueInOneDay': 'Due in 1 day',
     'dashboard.hero.dueInManyDays': 'Due in {{count}} days',
@@ -169,7 +179,31 @@ export const translations: Record<Locale, TranslationDict> = {
     'bills.tab.history': 'History',
     'bills.tab.archived': 'Archived',
     'bills.newBill': 'New Bill',
+    'bills.bulk.selectedBar': '{{count}} selected',
+    'bills.bulk.clear': 'Clear selection',
+    'bills.bulk.approveOpen': 'Approve selected',
+    'bills.bulk.payOpen': 'Pay selected',
+    'bills.bulk.reviewHint':
+      'Review the items below. Total applies to this selection.',
+    'bills.bulk.confirmApproveTitle': 'Approve selected bills?',
+    'bills.bulk.confirmPayTitle': 'Pay selected bills?',
+    'bills.bulk.total': 'Total',
+    'bills.bulk.cancel': 'Cancel',
+    'bills.bulk.confirmApprove': 'Approve {{count}}',
+    'bills.bulk.confirmPay': 'Pay {{count}}',
+
     'bills.payComment': 'Paid on {{date}} via {{method}}',
+    'bills.payment.confirmTitle': 'Confirm Payment',
+    'bills.payment.successTitle': 'Payment successful',
+    'bills.payment.successBody':
+      'The payment was processed correctly. You can now continue reviewing the remaining bills.',
+    'bills.payment.done': 'Done',
+    'bills.payment.amountToPay': 'Amount to pay',
+    'bills.payment.payWithCard': 'Pay with card',
+    'bills.payment.scheduledDate': 'Scheduled date',
+    'bills.payment.cancel': 'Cancel',
+    'bills.payment.processing': 'Processing...',
+    'bills.payment.confirmCta': 'Confirm Payment',
 
     'bills.filters.searchPlaceholder': 'Search vendor or invoice #',
     'bills.filters.allVendors': 'All Vendors',
@@ -181,6 +215,19 @@ export const translations: Record<Locale, TranslationDict> = {
     'bills.table.dueDate': 'Due Date',
     'bills.table.status': 'Status',
     'bills.table.actions': 'Actions',
+    'bills.table.sync': 'Sync',
+
+    'bills.sync.pendingErp':
+      'Not synced yet — will sync after approval or payment.',
+    'bills.sync.waitingApproval':
+      'Waiting for approval to sync with QuickBooks.',
+    'bills.sync.successQbo': 'Synced to QuickBooks (ID: #{{id}}).',
+    'bills.sync.failedVendorTax':
+      'Sync failed: invalid or missing vendor Tax ID.',
+    'bills.sync.failedMissingGl':
+      'Sync failed: missing GL / expense account mapping.',
+    'bills.sync.failedGeneric':
+      'Sync failed. Fix data and retry or contact support.',
     'bills.action.submit': 'Submit',
     'bills.action.view': 'View',
     'bills.action.review': 'Review',
@@ -192,6 +239,11 @@ export const translations: Record<Locale, TranslationDict> = {
     'bills.action.reviewFix': 'Review or fix',
     'bills.action.delete': 'Delete',
     'bills.action.restore': 'Restore',
+    'bills.restore.confirmTitle': 'Restore archived bill?',
+    'bills.restore.confirmBody':
+      'This bill will leave Archive and return to Drafts. You can edit it and submit it for approval again.',
+    'bills.restore.confirmCta': 'Restore to Drafts',
+    'bills.restore.cancelCta': 'Cancel',
     'bills.reject.title': 'Reject bill',
     'bills.reject.placeholder': 'Add rejection reason',
     'bills.reject.cancel': 'Cancel',
@@ -202,17 +254,53 @@ export const translations: Record<Locale, TranslationDict> = {
     'bills.approve.body': 'Are you sure you want to approve this bill?',
     'bills.approve.confirm': 'Approve',
     'bills.approve.cancel': 'Cancel',
-    'bills.approve.successToast': 'Bill approved successfully. It is now ready for payment.',
+    'bills.approve.successToast':
+      'Bill approved successfully. It is now ready for payment.',
     'bills.submit.successTitle': 'Submitted for approval',
     'bills.submit.successBack': 'Back',
-    'bills.submit.successBody': 'The bill was sent to approvers. You can now return and keep working on drafts.',
+    'bills.submit.successBody':
+      'The bill was sent to approvers. You can now return and keep working on drafts.',
     'bills.submit.confirm.title': 'Submit for approval',
-    'bills.submit.confirm.body': 'Are you sure you want to submit this bill for approval?',
+    'bills.submit.confirm.body':
+      'Are you sure you want to submit this bill for approval?',
     'bills.submit.confirm.submitCta': 'Submit for approval',
     'bills.submit.confirm.resubmitCta': 'Resubmit for approval',
     'bills.submit.confirm.cancel': 'Cancel',
+    'bills.form.error.required': 'Vendor, invoice number, due date and amount are required.',
+    'bills.form.error.authRequired': 'Sign in to create a bill.',
+    'bills.form.error.saveFailed': 'Could not save bill. Check your connection.',
+    'bills.form.loading': 'Loading bill...',
+    'bills.form.submit.saveDraft': 'Save Draft',
+    'bills.form.submit.resubmit': 'Resubmit for Approval',
+    'bills.form.submit.saveChanges': 'Save Changes',
+    'bills.form.submit.saving': 'Saving…',
+    'bills.form.vendor': 'Vendor',
+    'bills.form.invoiceNumber': 'Invoice Number',
+    'bills.form.invoiceDate': 'Invoice Date',
+    'bills.form.dueDate': 'Due Date',
+    'bills.form.amount': 'Amount',
+    'bills.form.notesOptional': 'Notes (optional)',
+    'bills.form.lineItemsOptional': 'Line Items (optional)',
+    'bills.form.addRow': 'Add Row',
+    'bills.form.lineItemDescription': 'Description',
+    'bills.form.lineItemAmount': 'Amount',
+    'bills.form.lineItemCategory': 'Category',
+    'bills.form.cancel': 'Cancel',
+    'bills.detail.downloadPdf': 'Download PDF',
+    'bills.detail.amount': 'Amount',
+    'bills.detail.due': 'Due',
+    'bills.detail.notes': 'Notes',
+    'bills.detail.invoice': 'Invoice',
+    'bills.detail.vendor': 'Vendor',
+    'bills.detail.lineItems': 'Line Items',
+    'bills.detail.description': 'Description',
+    'bills.detail.back': 'Back',
+    'bills.detail.statusTimeline': 'Status Timeline',
+    'bills.detail.byActor': 'By {{actor}}',
+    'bills.detail.payBill': 'Pay Bill',
     'bills.delete.title': 'Delete bill',
-    'bills.delete.description': 'Are you sure you want to delete this draft bill?',
+    'bills.delete.description':
+      'Are you sure you want to delete this draft bill?',
     'bills.delete.confirm': 'Delete',
     'bills.delete.cancel': 'Cancel',
     'bills.archive.title': 'Archive bill',
@@ -262,9 +350,11 @@ export const translations: Record<Locale, TranslationDict> = {
     'vendors.form.cancel': 'Cancel',
     'vendors.form.save': 'Save changes',
     'vendors.form.create': 'Create vendor',
-    'vendors.error.required': 'Name, email, Tax ID/CUIT, and valid payment terms are required.',
+    'vendors.error.required':
+      'Name, email, Tax ID/CUIT, and valid payment terms are required.',
     'vendors.error.saveFailed': 'Could not save vendor. Try again.',
-    'vendors.error.deleteBlockedByBills': 'This vendor has bills and cannot be deleted.',
+    'vendors.error.deleteBlockedByBills':
+      'This vendor has bills and cannot be deleted.',
     'vendors.error.deleteFailed': 'Could not delete vendor. Try again.',
 
     'vendors.delete.title': 'Delete vendor',
@@ -321,6 +411,13 @@ export const translations: Record<Locale, TranslationDict> = {
     'settings.profile.status': 'Status',
     'settings.profile.active': 'Active',
 
+    'settings.integrations.title': 'Integrations',
+    'settings.integrations.subtitle':
+      'Connect Payr to your accounting system (simulated).',
+    'settings.integrations.erpSync': 'Show ERP sync status (QuickBooks)',
+    'settings.integrations.erpSyncHint':
+      'When on, the Bills table shows a Sync column with cloud sync state.',
+
     'settings.payment.title': 'Payment Methods',
     'settings.payment.subtitle': 'Cards used to fund outgoing bill payments.',
     'settings.payment.addCard': 'Add Card',
@@ -329,7 +426,8 @@ export const translations: Record<Locale, TranslationDict> = {
     'settings.payment.deleteCardTitle': 'Delete card',
 
     'settings.companies.title': 'Companies',
-    'settings.companies.subtitle': 'Create and manage sub-companies for your finance team.',
+    'settings.companies.subtitle':
+      'Create and manage sub-companies for your finance team.',
     'settings.companies.create': 'Create company',
     'settings.companies.active': 'Active',
     'settings.companies.default': 'Default',
@@ -353,7 +451,8 @@ export const translations: Record<Locale, TranslationDict> = {
     'settings.companyModal.submit': 'Create company',
 
     'settings.error.companyRequired': 'Name and Tax ID are required.',
-    'settings.error.cardRequired': 'Brand, 4 digits, cardholder, and expiry are required.',
+    'settings.error.cardRequired':
+      'Brand, 4 digits, cardholder, and expiry are required.',
     'settings.error.avatarTooLarge': 'Image must be 600 KB or smaller.',
     'settings.error.avatarType': 'Use a JPG, PNG, GIF, or WebP image.',
   },
@@ -377,7 +476,8 @@ export const translations: Record<Locale, TranslationDict> = {
     'auth.login.backHome': 'Volver al inicio',
 
     'landing.tagline': 'Facturas, proveedores y pagos en un solo lugar.',
-    'landing.sub': 'Un espacio financiero claro para equipos con varias entidades legales.',
+    'landing.sub':
+      'Un espacio financiero claro para equipos con varias entidades legales.',
     'landing.hero.line1': 'Pagos a proveedores modernos para',
     'landing.hero.accent': 'equipos financieros.',
     'landing.cta.signin': 'Iniciar sesión',
@@ -399,7 +499,8 @@ export const translations: Record<Locale, TranslationDict> = {
       'Despedite de las planillas, los hilos eternos de email y el caos de aprobaciones. Una sola plataforma para seguir, aprobar y pagar todas tus facturas.',
     'landing.new.heroPrimaryCta': 'Empezar gratis hoy',
     'landing.new.heroSecondaryCta': 'Iniciar sesion',
-    'landing.new.microTrust': 'Sin tarjeta de credito - Configuracion en menos de 2 minutos - 14 dias de acceso total',
+    'landing.new.microTrust':
+      'Sin tarjeta de credito - Configuracion en menos de 2 minutos - 14 dias de acceso total',
     'landing.new.demoTitle': 'Demo interactiva',
     'landing.new.demoSubtitle': 'Mira payr. en accion (proximamente)',
     'landing.new.totalDueLabel': 'Total a pagar este mes',
@@ -407,12 +508,14 @@ export const translations: Record<Locale, TranslationDict> = {
     'landing.new.trustTitle': 'Confiado por equipos de alto crecimiento',
     'landing.new.trustBrands': 'Notion • Vercel • Linear • Ramp • Brex',
     'landing.new.featuresTitle': 'Todo lo que tu equipo financiero necesita',
-    'landing.new.featuresDesc': 'Herramientas potentes y simples para eliminar el caos de facturas de una vez.',
+    'landing.new.featuresDesc':
+      'Herramientas potentes y simples para eliminar el caos de facturas de una vez.',
     'landing.new.feature1Title': 'Flujos de aprobacion inteligentes',
     'landing.new.feature1Desc':
       'Enrutamiento automatico por monto, proveedor o departamento. Incluye trazabilidad completa.',
     'landing.new.feature2Title': 'Panel en tiempo real',
-    'landing.new.feature2Desc': 'Ve cada factura, cada aprobacion y cada pago en una vista unica y clara.',
+    'landing.new.feature2Desc':
+      'Ve cada factura, cada aprobacion y cada pago en una vista unica y clara.',
     'landing.new.feature3Title': 'Pagos instantaneos',
     'landing.new.feature3Desc':
       'Paga a cualquier proveedor por ACH, transferencia o tarjeta virtual en segundos.',
@@ -421,10 +524,12 @@ export const translations: Record<Locale, TranslationDict> = {
     'landing.new.stat3Label': 'facturas procesadas por mes',
     'landing.new.stat4Label': 'de 180+ equipos',
     'landing.new.finalCtaTitle': 'Listo para eliminar el caos de facturas?',
-    'landing.new.finalCtaDesc': 'Unite a cientos de equipos que ya ahorran 15+ horas por semana.',
+    'landing.new.finalCtaDesc':
+      'Unite a cientos de equipos que ya ahorran 15+ horas por semana.',
     'landing.new.finalPrimaryCta': 'Crear cuenta gratis',
     'landing.new.finalSecondaryCta': 'Ya tengo cuenta',
-    'landing.new.finalTrust': 'Sin riesgo. Cancela cuando quieras. Tus primeras 50 facturas van por nuestra cuenta.',
+    'landing.new.finalTrust':
+      'Sin riesgo. Cancela cuando quieras. Tus primeras 50 facturas van por nuestra cuenta.',
 
     'help.p1':
       'Payr te ayuda a gestionar facturas, proveedores, aprobaciones y pagos en un solo espacio. Si algo no se ve bien—especialmente tras la extracción con IA—revisa los campos extraídos antes de enviar.',
@@ -451,7 +556,10 @@ export const translations: Record<Locale, TranslationDict> = {
     'page.payments': 'Pagos',
     'page.settings': 'Configuración',
     'page.billDetails': 'Detalle de factura',
+    'page.billNew': 'Nueva factura',
     'page.billEdit': 'Editar factura',
+    'page.billEditDraft': 'Editar borrador',
+    'page.billEditRejected': 'Editar factura rechazada',
     'page.default': 'Payr',
 
     'dashboard.hero.overduePayment': 'Pago vencido',
@@ -459,7 +567,8 @@ export const translations: Record<Locale, TranslationDict> = {
     'dashboard.hero.noUpcomingPayment': 'Sin pago próximo',
     'dashboard.hero.noApprovedBill': 'Ninguna factura aprobada o programada',
     'dashboard.hero.wasDueOverdueOne': 'Venció el {{date}} · 1 día de atraso',
-    'dashboard.hero.wasDueOverdueMany': 'Venció el {{date}} · {{count}} días de atraso',
+    'dashboard.hero.wasDueOverdueMany':
+      'Venció el {{date}} · {{count}} días de atraso',
     'dashboard.hero.dueToday': 'Vence hoy',
     'dashboard.hero.dueInOneDay': 'Vence en 1 día',
     'dashboard.hero.dueInManyDays': 'Vence en {{count}} días',
@@ -509,7 +618,31 @@ export const translations: Record<Locale, TranslationDict> = {
     'bills.tab.history': 'Historial',
     'bills.tab.archived': 'Archivadas',
     'bills.newBill': 'Nueva factura',
+    'bills.bulk.selectedBar': '{{count}} seleccionadas',
+    'bills.bulk.clear': 'Quitar selección',
+    'bills.bulk.approveOpen': 'Aprobar selección',
+    'bills.bulk.payOpen': 'Pagar selección',
+    'bills.bulk.reviewHint':
+      'Revisá las facturas. El total corresponde a esta selección.',
+    'bills.bulk.confirmApproveTitle': '¿Aprobar las facturas seleccionadas?',
+    'bills.bulk.confirmPayTitle': '¿Pagar las facturas seleccionadas?',
+    'bills.bulk.total': 'Total',
+    'bills.bulk.cancel': 'Cancelar',
+    'bills.bulk.confirmApprove': 'Aprobar {{count}}',
+    'bills.bulk.confirmPay': 'Pagar {{count}}',
+
     'bills.payComment': 'Pagado el {{date}} vía {{method}}',
+    'bills.payment.confirmTitle': 'Confirmar pago',
+    'bills.payment.successTitle': 'Pago exitoso',
+    'bills.payment.successBody':
+      'El pago se procesó correctamente. Ahora puedes seguir revisando las facturas pendientes.',
+    'bills.payment.done': 'Listo',
+    'bills.payment.amountToPay': 'Importe a pagar',
+    'bills.payment.payWithCard': 'Pagar con tarjeta',
+    'bills.payment.scheduledDate': 'Fecha programada',
+    'bills.payment.cancel': 'Cancelar',
+    'bills.payment.processing': 'Procesando...',
+    'bills.payment.confirmCta': 'Confirmar pago',
 
     'bills.filters.searchPlaceholder': 'Buscar proveedor o n.º de factura',
     'bills.filters.allVendors': 'Todos los proveedores',
@@ -521,6 +654,19 @@ export const translations: Record<Locale, TranslationDict> = {
     'bills.table.dueDate': 'Vencimiento',
     'bills.table.status': 'Estado',
     'bills.table.actions': 'Acciones',
+    'bills.table.sync': 'Sync',
+
+    'bills.sync.pendingErp':
+      'Pendiente de sincronización con el ERP (aún no se intentó).',
+    'bills.sync.waitingApproval':
+      'En espera de aprobación para sincronizar con QuickBooks.',
+    'bills.sync.successQbo': 'Sincronizado con QuickBooks (ID: #{{id}}).',
+    'bills.sync.failedVendorTax':
+      'Error de sincronización: CUIT / Tax ID de proveedor no válido o faltante.',
+    'bills.sync.failedMissingGl':
+      'Error de sincronización: falta cuenta contable (GL) o mapeo de gasto.',
+    'bills.sync.failedGeneric':
+      'Error de sincronización. Corregí los datos o contactá soporte.',
     'bills.action.submit': 'Enviar',
     'bills.action.view': 'Ver',
     'bills.action.review': 'Revisar',
@@ -532,6 +678,11 @@ export const translations: Record<Locale, TranslationDict> = {
     'bills.action.reviewFix': 'Revisar o corregir',
     'bills.action.delete': 'Eliminar',
     'bills.action.restore': 'Restaurar',
+    'bills.restore.confirmTitle': '¿Restaurar factura archivada?',
+    'bills.restore.confirmBody':
+      'Va a salir de Archivadas y volver a Borradores. Ahí podés editarla y mandarla de nuevo a aprobación.',
+    'bills.restore.confirmCta': 'Restaurar a borradores',
+    'bills.restore.cancelCta': 'Cancelar',
     'bills.reject.title': 'Rechazar factura',
     'bills.reject.placeholder': 'Escribe el motivo del rechazo',
     'bills.reject.cancel': 'Cancelar',
@@ -542,15 +693,50 @@ export const translations: Record<Locale, TranslationDict> = {
     'bills.approve.body': '¿Seguro que quieres aprobar esta factura?',
     'bills.approve.confirm': 'Aprobar',
     'bills.approve.cancel': 'Cancelar',
-    'bills.approve.successToast': 'Factura aprobada con éxito. Ahora está lista para ser pagada.',
+    'bills.approve.successToast':
+      'Factura aprobada con éxito. Ahora está lista para ser pagada.',
     'bills.submit.successTitle': 'Enviada para aprobación',
     'bills.submit.successBack': 'Volver',
-    'bills.submit.successBody': 'La factura se envió a aprobación. Ahora puedes volver y seguir trabajando en borradores.',
+    'bills.submit.successBody':
+      'La factura se envió a aprobación. Ahora puedes volver y seguir trabajando en borradores.',
     'bills.submit.confirm.title': 'Enviar para aprobación',
-    'bills.submit.confirm.body': '¿Seguro que quieres enviar esta factura para aprobación?',
+    'bills.submit.confirm.body':
+      '¿Seguro que quieres enviar esta factura para aprobación?',
     'bills.submit.confirm.submitCta': 'Enviar para aprobación',
     'bills.submit.confirm.resubmitCta': 'Reenviar para aprobación',
     'bills.submit.confirm.cancel': 'Cancelar',
+    'bills.form.error.required': 'Proveedor, número de factura, vencimiento e importe son obligatorios.',
+    'bills.form.error.authRequired': 'Inicia sesión para crear una factura.',
+    'bills.form.error.saveFailed': 'No se pudo guardar la factura. Revisa tu conexión.',
+    'bills.form.loading': 'Cargando factura...',
+    'bills.form.submit.saveDraft': 'Guardar borrador',
+    'bills.form.submit.resubmit': 'Reenviar para aprobación',
+    'bills.form.submit.saveChanges': 'Guardar cambios',
+    'bills.form.submit.saving': 'Guardando…',
+    'bills.form.vendor': 'Proveedor',
+    'bills.form.invoiceNumber': 'Número de factura',
+    'bills.form.invoiceDate': 'Fecha de factura',
+    'bills.form.dueDate': 'Vencimiento',
+    'bills.form.amount': 'Importe',
+    'bills.form.notesOptional': 'Notas (opcional)',
+    'bills.form.lineItemsOptional': 'Ítems (opcional)',
+    'bills.form.addRow': 'Agregar fila',
+    'bills.form.lineItemDescription': 'Descripción',
+    'bills.form.lineItemAmount': 'Importe',
+    'bills.form.lineItemCategory': 'Categoría',
+    'bills.form.cancel': 'Cancelar',
+    'bills.detail.downloadPdf': 'Descargar PDF',
+    'bills.detail.amount': 'Importe',
+    'bills.detail.due': 'Vencimiento',
+    'bills.detail.notes': 'Notas',
+    'bills.detail.invoice': 'Factura',
+    'bills.detail.vendor': 'Proveedor',
+    'bills.detail.lineItems': 'Ítems',
+    'bills.detail.description': 'Descripción',
+    'bills.detail.back': 'Volver',
+    'bills.detail.statusTimeline': 'Historial de estado',
+    'bills.detail.byActor': 'Por {{actor}}',
+    'bills.detail.payBill': 'Pagar factura',
     'bills.delete.title': 'Eliminar factura',
     'bills.delete.description': '¿Seguro que quieres eliminar este borrador?',
     'bills.delete.confirm': 'Eliminar',
@@ -584,7 +770,8 @@ export const translations: Record<Locale, TranslationDict> = {
     'vendors.action.viewTitle': 'Ver detalle del proveedor',
     'vendors.action.viewAria': 'Ver detalle de {{name}}',
     'vendors.action.deleteTitle': 'Eliminar proveedor',
-    'vendors.action.deleteDisabledTitle': 'No se puede eliminar un proveedor con facturas',
+    'vendors.action.deleteDisabledTitle':
+      'No se puede eliminar un proveedor con facturas',
     'vendors.action.deleteAria': 'Eliminar {{name}}',
 
     'vendors.modal.editTitle': 'Editar proveedor',
@@ -602,10 +789,14 @@ export const translations: Record<Locale, TranslationDict> = {
     'vendors.form.cancel': 'Cancelar',
     'vendors.form.save': 'Guardar cambios',
     'vendors.form.create': 'Crear proveedor',
-    'vendors.error.required': 'Nombre, correo, Tax ID/CUIT y plazo de pago válido son obligatorios.',
-    'vendors.error.saveFailed': 'No se pudo guardar el proveedor. Inténtalo de nuevo.',
-    'vendors.error.deleteBlockedByBills': 'Este proveedor tiene facturas y no se puede eliminar.',
-    'vendors.error.deleteFailed': 'No se pudo eliminar el proveedor. Inténtalo de nuevo.',
+    'vendors.error.required':
+      'Nombre, correo, Tax ID/CUIT y plazo de pago válido son obligatorios.',
+    'vendors.error.saveFailed':
+      'No se pudo guardar el proveedor. Inténtalo de nuevo.',
+    'vendors.error.deleteBlockedByBills':
+      'Este proveedor tiene facturas y no se puede eliminar.',
+    'vendors.error.deleteFailed':
+      'No se pudo eliminar el proveedor. Inténtalo de nuevo.',
 
     'vendors.delete.title': 'Eliminar proveedor',
     'vendors.delete.description':
@@ -621,7 +812,8 @@ export const translations: Record<Locale, TranslationDict> = {
     'vendors.details.totalPaid': 'Total pagado',
     'vendors.details.lastInvoice': 'Fecha de ultima factura',
     'vendors.details.relatedBills': 'Facturas relacionadas',
-    'vendors.details.noBills': 'No se encontraron facturas para este proveedor.',
+    'vendors.details.noBills':
+      'No se encontraron facturas para este proveedor.',
 
     'payments.filters.vendor': 'Proveedor',
     'payments.filters.allVendors': 'Todos los proveedores',
@@ -642,7 +834,8 @@ export const translations: Record<Locale, TranslationDict> = {
     'payments.table.reference': 'N.º referencia',
 
     'settings.account.title': 'Configuración de cuenta',
-    'settings.account.subtitle': 'Administra tu perfil y el acceso a las empresas.',
+    'settings.account.subtitle':
+      'Administra tu perfil y el acceso a las empresas.',
     'settings.account.editAria': 'Editar perfil de cuenta',
     'settings.account.editTitle': 'Editar perfil',
     'settings.profile.avatarLabel': 'Foto de perfil',
@@ -661,15 +854,25 @@ export const translations: Record<Locale, TranslationDict> = {
     'settings.profile.status': 'Estado',
     'settings.profile.active': 'Activo',
 
+    'settings.integrations.title': 'Integraciones',
+    'settings.integrations.subtitle':
+      'Conectá Payr a tu contabilidad (simulado).',
+    'settings.integrations.erpSync': 'Mostrar estado de sync ERP (QuickBooks)',
+    'settings.integrations.erpSyncHint':
+      'Si está activo, la tabla de facturas muestra la columna Sync y el estado con la nube.',
+
     'settings.payment.title': 'Métodos de pago',
-    'settings.payment.subtitle': 'Tarjetas usadas para financiar pagos de facturas.',
+    'settings.payment.subtitle':
+      'Tarjetas usadas para financiar pagos de facturas.',
     'settings.payment.addCard': 'Añadir tarjeta',
     'settings.payment.expires': 'Vence {{expiry}}',
-    'settings.payment.deleteCardAria': 'Eliminar tarjeta terminada en {{last4}}',
+    'settings.payment.deleteCardAria':
+      'Eliminar tarjeta terminada en {{last4}}',
     'settings.payment.deleteCardTitle': 'Eliminar tarjeta',
 
     'settings.companies.title': 'Empresas',
-    'settings.companies.subtitle': 'Crea y gestiona sub-empresas para tu equipo financiero.',
+    'settings.companies.subtitle':
+      'Crea y gestiona sub-empresas para tu equipo financiero.',
     'settings.companies.create': 'Crear empresa',
     'settings.companies.active': 'Activa',
     'settings.companies.default': 'Predeterminada',
@@ -692,8 +895,10 @@ export const translations: Record<Locale, TranslationDict> = {
     'settings.companyModal.cancel': 'Cancelar',
     'settings.companyModal.submit': 'Crear empresa',
 
-    'settings.error.companyRequired': 'El nombre y el ID fiscal son obligatorios.',
-    'settings.error.cardRequired': 'Marca, 4 dígitos, titular y vencimiento son obligatorios.',
+    'settings.error.companyRequired':
+      'El nombre y el ID fiscal son obligatorios.',
+    'settings.error.cardRequired':
+      'Marca, 4 dígitos, titular y vencimiento son obligatorios.',
     'settings.error.avatarTooLarge': 'La imagen debe pesar 600 KB o menos.',
     'settings.error.avatarType': 'Usa una imagen JPG, PNG, GIF o WebP.',
   },

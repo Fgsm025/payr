@@ -3,25 +3,23 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { Bill } from '../../data/mockData'
 import { useAppStore } from '../../store/useAppStore'
 import Button from '../../components/ui/Button'
-import Modal from '../../components/ui/Modal'
-import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import BillFilters from './BillFilters'
 import BillsTable from './BillsTable'
 import CreateBillModal from './CreateBillModal'
-import ConfirmPaymentModal from './ConfirmPaymentModal'
 import TableSkeleton from '../../components/ui/TableSkeleton'
 import { useTranslation } from '../../i18n/useI18n'
 import { useWorkspaceBillsQuery, useWorkspaceVendorsQuery } from '@/hooks/useWorkspaceQueries'
 import { mapApiBillToStore } from '@/utils/mapApiBillToStore'
 import { API_BASE_URL } from '@/lib/apiBaseUrl'
 import { queryClient } from '@/lib/queryClient'
+import { BILLS_TAB_VALUES } from '@/lib/billsTab'
 
-const TAB_VALUES = ['drafts', 'for_approval', 'for_payment', 'history', 'archived'] as const
+const TAB_VALUES = BILLS_TAB_VALUES
 
 const tabStatuses: Record<string, Bill['status'][]> = {
   drafts: ['draft', 'rejected'],
   for_approval: ['pending_approval'],
-  for_payment: ['approved'],
+  for_payment: ['approved', 'scheduled'],
   history: ['paid'],
   archived: ['archived'],
 }
@@ -33,12 +31,11 @@ export default function BillsPage() {
   const bills = useMemo(() => (billsQuery.data ?? []).map((raw) => mapApiBillToStore(raw)), [billsQuery.data])
   const vendors = vendorsQuery.data ?? []
   const tableLoading = billsQuery.isPending && !billsQuery.data
-  const paymentMethods = useAppStore((state) => state.paymentMethods)
-  const transitionBill = useAppStore((state) => state.transitionBill)
   const authToken = useAppStore((state) => state.authToken)
   const activeWorkspaceId = useAppStore((state) => state.activeWorkspaceId)
   const logout = useAppStore((state) => state.logout)
   const showSnack = useAppStore((state) => state.showSnack)
+  const transitionBill = useAppStore((state) => state.transitionBill)
   const isCreateBillModalOpen = useAppStore((state) => state.isCreateBillModalOpen)
   const openCreateBillModal = useAppStore((state) => state.openCreateBillModal)
   const closeCreateBillModal = useAppStore((state) => state.closeCreateBillModal)
@@ -48,11 +45,6 @@ export default function BillsPage() {
   const isValidInitialTab = initialTab && TAB_VALUES.includes(initialTab as (typeof TAB_VALUES)[number])
   const [activeTab, setActiveTab] = useState(isValidInitialTab ? initialTab : 'drafts')
   const [filters, setFilters] = useState({ search: '', vendorFilter: 'all', dateFrom: '', dateTo: '' })
-  const [payingBill, setPayingBill] = useState<{ id: string; amount: number; dueDate: string } | null>(null)
-  const [rejectingBillId, setRejectingBillId] = useState<string | null>(null)
-  const [rejectComment, setRejectComment] = useState('')
-  const [deletingBillId, setDeletingBillId] = useState<string | null>(null)
-  const [archivingBillId, setArchivingBillId] = useState<string | null>(null)
   useEffect(() => {
     if (searchParams.get('toast') !== 'approved') return
     showSnack(t('bills.approve.successToast'), 'success')
@@ -122,60 +114,31 @@ export default function BillsPage() {
     setFilters((prev) => ({ ...prev, [key]: value }))
   }
 
-  const onConfirmPayment = async ({
-    paymentMethodId,
-    scheduledDate,
-  }: {
-    paymentMethodId: string
-    scheduledDate: string
-  }) => {
-    if (!payingBill) return
-    await new Promise((resolve) => globalThis.setTimeout(resolve, 1000))
-    await transitionBill(
-      payingBill.id,
-      'pay',
-      t('bills.payComment', { date: scheduledDate, method: paymentMethodId }),
+  const runBulkStatusAction = async (billIds: string[], action: 'approve' | 'pay') => {
+    if (!authToken || billIds.length === 0) return
+    const requests = billIds.map((billId) =>
+      fetch(`${API_BASE_URL}/bills/${billId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+          'X-Entity-Id': activeWorkspaceId,
+        },
+        body: JSON.stringify({ action }),
+      }),
     )
-  }
 
-  const onConfirmReject = async () => {
-    if (!rejectingBillId) return
-    await transitionBill(rejectingBillId, 'reject', rejectComment.trim())
-    setRejectingBillId(null)
-    setRejectComment('')
-  }
-
-  const onDeleteDraft = async (billId: string) => {
-    if (!authToken) return
-    const response = await fetch(`${API_BASE_URL}/bills/${billId}`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-        'X-Entity-Id': activeWorkspaceId,
-      },
-    })
-    if (response.status === 401) {
+    const results = await Promise.all(requests)
+    if (results.some((res) => res.status === 401)) {
       logout()
       return
     }
-    if (response.ok) {
-      await queryClient.invalidateQueries({ queryKey: ['workspace', activeWorkspaceId] })
-      showSnack('Draft deleted.', 'success')
+    await queryClient.invalidateQueries({ queryKey: ['workspace', activeWorkspaceId] })
+    if (results.every((res) => res.ok)) {
+      showSnack(action === 'approve' ? 'Selected bills approved.' : 'Selected bills paid.', 'success')
       return
     }
-    showSnack('Could not delete draft bill.', 'error')
-  }
-
-  const onConfirmDeleteDraft = async () => {
-    if (!deletingBillId) return
-    await onDeleteDraft(deletingBillId)
-    setDeletingBillId(null)
-  }
-
-  const onConfirmArchiveDraft = async () => {
-    if (!archivingBillId) return
-    await transitionBill(archivingBillId, 'archive')
-    setArchivingBillId(null)
+    showSnack('Some selected bills could not be processed.', 'error')
   }
 
   return (
@@ -217,15 +180,8 @@ export default function BillsPage() {
             bills={filtered}
             activeTab={activeTab}
             onAction={(billId, action) => void transitionBill(billId, action)}
-            onRejectRequest={(billId) => {
-              setRejectingBillId(billId)
-              setRejectComment('')
-            }}
-            onDeleteDraft={(billId) => setDeletingBillId(billId)}
-            onArchiveRequest={(billId) => setArchivingBillId(billId)}
-            onEdit={(billId) => navigate(`/bills/${billId}/edit`)}
-            onView={(billId) => navigate(`/bills/${billId}`)}
-            onPayRequest={(bill) => setPayingBill({ id: bill.id, amount: bill.amount, dueDate: bill.dueDate })}
+            onView={(billId) => navigate(`/bills/${billId}`, { state: { billsTab: activeTab } })}
+            onBulkAction={runBulkStatusAction}
           />
         </div>
       )}
@@ -233,67 +189,6 @@ export default function BillsPage() {
         isOpen={isCreateBillModalOpen}
         onClose={closeCreateBillModal}
         onCreated={() => setActiveTab('drafts')}
-      />
-      <ConfirmPaymentModal
-        isOpen={Boolean(payingBill)}
-        amount={payingBill?.amount ?? 0}
-        dueDate={payingBill?.dueDate ?? new Date().toISOString().slice(0, 10)}
-        paymentMethods={paymentMethods}
-        onClose={() => setPayingBill(null)}
-        onConfirm={onConfirmPayment}
-      />
-      <Modal
-        title={t('bills.reject.title')}
-        isOpen={Boolean(rejectingBillId)}
-        onClose={() => {
-          setRejectingBillId(null)
-          setRejectComment('')
-        }}
-      >
-        <div className="space-y-4">
-          <textarea
-            value={rejectComment}
-            onChange={(event) => setRejectComment(event.target.value)}
-            placeholder={t('bills.reject.placeholder')}
-            rows={4}
-            className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
-          />
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                setRejectingBillId(null)
-                setRejectComment('')
-              }}
-            >
-              {t('bills.reject.cancel')}
-            </Button>
-            <Button type="button" variant="danger" onClick={() => void onConfirmReject()}>
-              {t('bills.reject.confirm')}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-      <ConfirmDialog
-        isOpen={Boolean(deletingBillId)}
-        title={t('bills.delete.title')}
-        description={t('bills.delete.description')}
-        confirmLabel={t('bills.delete.confirm')}
-        cancelLabel={t('bills.delete.cancel')}
-        onConfirm={() => void onConfirmDeleteDraft()}
-        onCancel={() => setDeletingBillId(null)}
-      />
-      <ConfirmDialog
-        isOpen={Boolean(archivingBillId)}
-        title={t('bills.archive.title')}
-        description={t('bills.archive.description')}
-        confirmLabel={t('bills.archive.confirm')}
-        cancelLabel={t('bills.archive.cancel')}
-        confirmVariant="primary"
-        confirmFirst
-        onConfirm={() => void onConfirmArchiveDraft()}
-        onCancel={() => setArchivingBillId(null)}
       />
     </div>
   )

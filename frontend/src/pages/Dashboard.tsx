@@ -170,7 +170,7 @@ export default function Dashboard() {
     )
     .reduce((sum, bill) => sum + bill.amount, 0)
   const fallbackTotalPayable = bills
-    .filter((bill) => !['paid', 'rejected', 'archived'].includes(bill.status))
+    .filter((bill) => ['approved', 'scheduled'].includes(bill.status))
     .reduce((sum, bill) => sum + bill.amount, 0)
 
   const apiSummary = summaryQuery.data

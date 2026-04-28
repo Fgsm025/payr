@@ -45,6 +45,7 @@ export default function CreateBillModal({ isOpen, onClose, onCreated }: CreateBi
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isManual, setIsManual] = useState(false)
+  const [missingInfoFromExtraction, setMissingInfoFromExtraction] = useState(false)
 
   const [form, setForm] = useState({
     vendorId: vendors[0]?.id ?? '',
@@ -74,6 +75,7 @@ export default function CreateBillModal({ isOpen, onClose, onCreated }: CreateBi
     setError('')
     setIsSubmitting(false)
     setIsManual(false)
+    setMissingInfoFromExtraction(false)
     setForm({
       vendorId: vendors[0]?.id ?? '',
       invoiceNumber: invoiceSuggestion(),
@@ -125,6 +127,7 @@ export default function CreateBillModal({ isOpen, onClose, onCreated }: CreateBi
         })?.id ?? vendors[0]?.id ?? ''
 
       setIsManual(false)
+      setMissingInfoFromExtraction(!data.vendorName || !data.totalAmount)
       setForm((prev) => ({
         ...prev,
         vendorId,
@@ -171,6 +174,7 @@ export default function CreateBillModal({ isOpen, onClose, onCreated }: CreateBi
 
   const onManualEntry = () => {
     setIsManual(true)
+    setMissingInfoFromExtraction(false)
     setForm({
       vendorId: vendors[0]?.id ?? '',
       invoiceNumber: '',
@@ -228,6 +232,7 @@ export default function CreateBillModal({ isOpen, onClose, onCreated }: CreateBi
           amount: Number(form.amount),
           currency: form.currency,
           notes: form.notes,
+          missingInfo: missingInfoFromExtraction,
           line_items: lineItems
             .filter((item) => item.description || item.amount)
             .map((item) => ({

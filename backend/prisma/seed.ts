@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { BillStatus, PrismaClient } from '@prisma/client';
+import { BillStatus, PrismaClient, SyncStatus } from '@prisma/client';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 
 const adapter = new PrismaBetterSqlite3({
@@ -32,6 +32,11 @@ type SeedBillDef = {
   withPayment?: boolean;
   paymentMethod?: 'ach' | 'wire' | 'check';
   paymentDate?: Date;
+  /** Simulated ERP issues (red cloud in UI). */
+  missingInfo?: boolean;
+  /** Override default sync for demo. */
+  syncStatus?: SyncStatus;
+  erpSyncRef?: string | null;
 };
 
 type VendorSeed = { name: string; email: string; paymentTerms: number };
@@ -49,6 +54,29 @@ async function addHistory(
     await prisma.billStatusHistory.create({
       data: { billId, status, comment },
     });
+  }
+}
+
+function defaultErpForStatus(def: SeedBillDef): { syncStatus: SyncStatus; erpSyncRef: string | null } {
+  if (def.syncStatus !== undefined) {
+    return { syncStatus: def.syncStatus, erpSyncRef: def.erpSyncRef ?? null };
+  }
+  const refFromInv = String(
+    1_000 +
+      (def.invoiceNumber
+        .split('')
+        .reduce((acc, ch) => acc + ch.charCodeAt(0), 0) %
+        9_000),
+  );
+  switch (def.status) {
+    case 'approved':
+    case 'scheduled':
+    case 'paid':
+      return { syncStatus: 'SUCCESS', erpSyncRef: refFromInv };
+    case 'rejected':
+      return { syncStatus: 'FAILED', erpSyncRef: null };
+    default:
+      return { syncStatus: 'PENDING', erpSyncRef: null };
   }
 }
 
@@ -82,6 +110,7 @@ async function seedEntity(entityId: string, vendorSeeds: VendorSeed[], defs: See
     const vendor = vendors[def.vendorIdx];
     const amount = def.totalAmount;
 
+    const erp = defaultErpForStatus(def);
     const bill = await prisma.bill.create({
       data: {
         entityId,
@@ -93,6 +122,9 @@ async function seedEntity(entityId: string, vendorSeeds: VendorSeed[], defs: See
         totalAmount: amount,
         currency: 'USD',
         notes: def.notes,
+        missingInfo: def.missingInfo ?? false,
+        syncStatus: erp.syncStatus,
+        erpSyncRef: erp.erpSyncRef,
       },
     });
 
@@ -186,6 +218,7 @@ async function main() {
       dueDate: new Date('2026-05-20'),
       totalAmount: 3400,
       notes: 'API usage charges — April 2026 (Google Cloud).',
+      missingInfo: true,
     },
     {
       invoiceNumber: 'INV-2026-003',

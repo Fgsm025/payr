@@ -73,6 +73,7 @@ export type ApiPayment = {
   paymentDate: string
   method: string
   reference: string | null
+  status: 'INITIATED' | 'SUCCESS' | 'FAILED'
   bill: { invoiceNumber: string; vendor: { name: string } }
 }
 

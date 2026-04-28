@@ -145,8 +145,13 @@ type AppState = {
 
   theme: 'light' | 'dark'
   toggleTheme: () => void
+  erpAutoSyncEnabled: boolean
+  setErpAutoSyncEnabled: (enabled: boolean) => void
   locale: Locale
   setLocale: (locale: Locale) => void
+
+  layoutPageTitleOverride: string | null
+  setLayoutPageTitleOverride: (title: string | null) => void
 
   isCreateBillModalOpen: boolean
   openCreateBillModal: () => void
@@ -418,8 +423,13 @@ export const useAppStore = create<AppState>()(
 
       theme: 'light',
       toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+      erpAutoSyncEnabled: false,
+      setErpAutoSyncEnabled: (enabled) => set({ erpAutoSyncEnabled: enabled }),
       locale: detectBrowserLocale(),
       setLocale: (locale) => set({ locale }),
+
+      layoutPageTitleOverride: null,
+      setLayoutPageTitleOverride: (title) => set({ layoutPageTitleOverride: title }),
 
       isCreateBillModalOpen: false,
       openCreateBillModal: () => set({ isCreateBillModalOpen: true }),
@@ -484,6 +494,7 @@ export const useAppStore = create<AppState>()(
           authUser: null,
           authExpiresAt: null,
           isCreateBillModalOpen: false,
+          layoutPageTitleOverride: null,
         })
       },
       bootstrapAuth: () => {
@@ -498,7 +509,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'billpay-store',
-      version: 4,
+      version: 5,
       migrate: (persisted, fromVersion = 0) => {
         if (!persisted || typeof persisted !== 'object') return persisted
         const raw = { ...(persisted as Record<string, unknown>) }
@@ -518,6 +529,12 @@ export const useAppStore = create<AppState>()(
           raw.locale =
             loc === 'en' || loc === 'es' ? loc : detectBrowserLocale()
         }
+        if (v < 5) {
+          raw.erpAutoSyncEnabled = false
+        }
+        if (typeof raw.erpAutoSyncEnabled !== 'boolean') {
+          raw.erpAutoSyncEnabled = false
+        }
         return raw
       },
       partialize: (state) => ({
@@ -525,6 +542,7 @@ export const useAppStore = create<AppState>()(
         legalEntities: state.legalEntities,
         paymentMethods: state.paymentMethods,
         theme: state.theme,
+        erpAutoSyncEnabled: state.erpAutoSyncEnabled,
         locale: state.locale,
         authToken: state.authToken,
         authUser: state.authUser,
