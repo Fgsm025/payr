@@ -161,6 +161,16 @@ export default function BillDetailPage() {
         </Button>
       </>
     ),
+    archived: (
+      <Button
+        onClick={async () => {
+          const ok = await transitionBill(bill.id, 'restore')
+          if (ok) navigate(billsListPath('drafts'), { replace: true })
+        }}
+      >
+        {t('bills.action.restore')}
+      </Button>
+    ),
   } as const
 
   const onDownloadPdf = async () => {
