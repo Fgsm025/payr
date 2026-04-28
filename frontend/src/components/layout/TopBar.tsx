@@ -47,8 +47,8 @@ export default function TopBar({ title, showNewBill, onOpenMobileMenu, subtitle 
           {subtitle ?? t('topbar.subtitle')}
         </p>
       </div>
-      <div className="flex shrink-0 items-center gap-2 md:gap-3">
-        <div className="topbar-locale-switch hidden items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5 sm:flex">
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 md:gap-3">
+        <div className="topbar-locale-switch flex items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5">
           <button
             type="button"
             onClick={() => setLocale('es')}

@@ -36,13 +36,13 @@ export default function VendorDetailPage() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-sm md:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--color-border)] pb-4">
+      <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-sm sm:p-5 md:p-6">
+        <div className="flex flex-col items-start justify-between gap-3 border-b border-[var(--color-border)] pb-4 sm:flex-row">
           <div>
             <h2 className="text-xl font-semibold text-slate-900">{vendor.name}</h2>
             <p className="mt-1 text-sm text-slate-600">{vendor.email}</p>
           </div>
-          <Button variant="secondary" onClick={() => navigate('/vendors')}>
+          <Button variant="secondary" className="w-full sm:w-auto" onClick={() => navigate('/vendors')}>
             {t('vendors.details.back')}
           </Button>
         </div>
@@ -61,44 +61,71 @@ export default function VendorDetailPage() {
         </p>
       </div>
 
-      <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5 md:p-6">
+      <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4 sm:p-5 md:p-6">
         <h3 className="mb-3 text-sm font-semibold text-slate-900">{t('vendors.details.relatedBills')}</h3>
         {vendorBills.length === 0 ? (
           <p className="text-sm text-slate-500">{t('vendors.details.noBills')}</p>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-[var(--color-border)]">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-[var(--color-surface)] text-xs font-semibold uppercase tracking-wide text-slate-600">
-                <tr>
-                  <th className="px-4 py-2">{t('bills.table.invoiceNumber')}</th>
-                  <th className="px-4 py-2">{t('bills.table.invoiceDate')}</th>
-                  <th className="px-4 py-2">{t('bills.table.dueDate')}</th>
-                  <th className="px-4 py-2 text-right">{t('bills.table.amount')}</th>
-                  <th className="px-4 py-2">{t('bills.table.status')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {vendorBills.map((bill) => (
-                  <tr key={bill.id} className="border-t border-[var(--color-border)] bg-[var(--color-surface)]">
-                    <td className="px-4 py-2.5">
-                      <button
-                        type="button"
-                        className="cursor-pointer font-medium text-[var(--color-primary)] hover:underline"
-                        onClick={() => navigate(`/bills/${bill.id}`)}
-                      >
-                        {bill.invoiceNumber}
-                      </button>
-                    </td>
-                    <td className="px-4 py-2.5 text-slate-700">{bill.invoiceDate}</td>
-                    <td className="px-4 py-2.5 text-slate-700">{bill.dueDate}</td>
-                    <td className="px-4 py-2.5 text-right font-medium text-slate-900">${bill.amount.toLocaleString()}</td>
-                    <td className="px-4 py-2.5">
-                      <StatusBadge status={bill.status} />
-                    </td>
+          <div className="space-y-3">
+            <div className="space-y-3 md:hidden">
+              {vendorBills.map((bill) => (
+                <div key={bill.id} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <button
+                      type="button"
+                      className="cursor-pointer text-left font-medium text-[var(--color-primary)] hover:underline"
+                      onClick={() => navigate(`/bills/${bill.id}`)}
+                    >
+                      {bill.invoiceNumber}
+                    </button>
+                    <StatusBadge status={bill.status} />
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-600">
+                    <p>
+                      {t('bills.table.invoiceDate')}: {bill.invoiceDate}
+                    </p>
+                    <p>
+                      {t('bills.table.dueDate')}: {bill.dueDate}
+                    </p>
+                    <p className="col-span-2 font-semibold text-slate-900">${bill.amount.toLocaleString()}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto rounded-xl border border-[var(--color-border)] md:block">
+              <table className="min-w-[760px] w-full text-left text-sm">
+                <thead className="bg-[var(--color-surface)] text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  <tr>
+                    <th className="px-4 py-2">{t('bills.table.invoiceNumber')}</th>
+                    <th className="px-4 py-2">{t('bills.table.invoiceDate')}</th>
+                    <th className="px-4 py-2">{t('bills.table.dueDate')}</th>
+                    <th className="px-4 py-2 text-right">{t('bills.table.amount')}</th>
+                    <th className="px-4 py-2">{t('bills.table.status')}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {vendorBills.map((bill) => (
+                    <tr key={bill.id} className="border-t border-[var(--color-border)] bg-[var(--color-surface)]">
+                      <td className="px-4 py-2.5">
+                        <button
+                          type="button"
+                          className="cursor-pointer font-medium text-[var(--color-primary)] hover:underline"
+                          onClick={() => navigate(`/bills/${bill.id}`)}
+                        >
+                          {bill.invoiceNumber}
+                        </button>
+                      </td>
+                      <td className="px-4 py-2.5 text-slate-700">{bill.invoiceDate}</td>
+                      <td className="px-4 py-2.5 text-slate-700">{bill.dueDate}</td>
+                      <td className="px-4 py-2.5 text-right font-medium text-slate-900">${bill.amount.toLocaleString()}</td>
+                      <td className="px-4 py-2.5">
+                        <StatusBadge status={bill.status} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
