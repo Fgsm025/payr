@@ -1,17 +1,34 @@
 import {
   ConflictException,
   Injectable,
+  OnModuleInit,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleInit {
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
   ) {}
+
+  async onModuleInit() {
+    const usersCount = await this.prisma.user.count();
+    if (usersCount > 0) {
+      return;
+    }
+
+    await this.prisma.user.create({
+      data: {
+        email: process.env.DEFAULT_ADMIN_EMAIL ?? 'admin@payr.co',
+        password: process.env.DEFAULT_ADMIN_PASSWORD ?? 'admin123',
+        name: 'Admin User',
+        role: 'admin',
+      },
+    });
+  }
 
   async register(input: { email: string; password: string }) {
     const existing = await this.prisma.user.findUnique({
