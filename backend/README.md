@@ -1,6 +1,6 @@
 # Payr Backend
 
-Built with NestJS, Prisma, and SQLite.
+Built with NestJS, Prisma, and PostgreSQL.
 
 ## Scripts
 

@@ -1,4 +1,15 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=payr
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   backend:
     build:
       context: ./backend
@@ -11,9 +22,11 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      - DATABASE_URL=file:./prisma/dev.db
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/payr?schema=public
       - PORT=3001
       - FRONTEND_ORIGIN=http://localhost:3000
+    depends_on:
+      - postgres
     command: >
       sh -c "npx prisma generate &&
              npx prisma db push &&
@@ -28,3 +41,6 @@ services:
       - "3000:3000"
     depends_on:
       - backend
+
+volumes:
+  postgres_data:

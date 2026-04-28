@@ -131,8 +131,8 @@ to model failed payments, retries, and partial records cleanly.
 every request. This keeps the auth token user-scoped while allowing workspace
 switching without re-login.
 
-**Prisma + SQLite:** No separate DB container needed, so `docker compose up`
-works in one command. Switching to PostgreSQL is a single config change.
+**Prisma + PostgreSQL:** A real relational engine for local dev and production-like
+behavior. `docker compose up` starts the API and database together.
 
 **JWT auth:** Stateless, single Admin user for the MVP.
 
@@ -159,7 +159,6 @@ If `OPENAI_API_KEY` is not set, simulation mode returns mock data regardless.
 - Single admin user — no multi-user or approval delegation
 - No real payments — "Mark as Paid" records the intent, no funds move
 - No RBAC — all authenticated users have full access
-- SQLite is not suitable for concurrent production workloads
 - QuickBooks sync is simulated — no real OAuth connection
 
 ## What I'd build next
