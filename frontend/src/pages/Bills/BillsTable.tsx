@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Eye } from 'lucide-react'
+import { Archive, Eye, Trash2 } from 'lucide-react'
 import DataTable from '../../components/ui/DataTable'
 import Button from '../../components/ui/Button'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
@@ -15,7 +15,10 @@ type BillRow = Bill & { vendorName: string; displayStatus: BillStatus | 'overdue
 type BillsTableProps = {
   bills: BillRow[]
   activeTab: string
-  onAction: (billId: string, action: 'submit' | 'approve' | 'reject' | 'pay' | 'archive' | 'restore') => void
+  onAction: (
+    billId: string,
+    action: 'submit' | 'approve' | 'reject' | 'pay' | 'archive' | 'restore' | 'delete',
+  ) => void
   onView: (billId: string) => void
   onBulkAction: (billIds: string[], action: 'approve' | 'pay') => Promise<void>
 }
@@ -33,6 +36,8 @@ export default function BillsTable({
   const [bulkSnapshot, setBulkSnapshot] = useState<null | { action: 'approve' | 'pay'; billIds: string[] }>(null)
   const [bulkSubmitting, setBulkSubmitting] = useState(false)
   const [restoreBillId, setRestoreBillId] = useState<string | null>(null)
+  const [archiveBillId, setArchiveBillId] = useState<string | null>(null)
+  const [deleteBillId, setDeleteBillId] = useState<string | null>(null)
 
   const selectable = activeTab === 'for_approval' || activeTab === 'for_payment'
   const selectedCount = selectedIds.length
@@ -68,6 +73,25 @@ export default function BillsTable({
           <Button variant="primary" size="sm" onClick={() => onView(row.id)}>
             {t('bills.action.view')}
           </Button>
+          <button
+            type="button"
+            onClick={() => setArchiveBillId(row.id)}
+            className="cursor-pointer rounded-lg border border-[var(--color-border)] p-1.5 text-slate-500 transition hover:border-[var(--color-primary)]/40 hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]"
+            aria-label={t('bills.action.archive')}
+            title={t('bills.action.archive')}
+          >
+            <Archive size={15} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setDeleteBillId(row.id)}
+            disabled={row.status !== 'draft'}
+            className="cursor-pointer rounded-lg border border-[var(--color-border)] p-1.5 text-slate-500 transition hover:border-red-500 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--color-border)] disabled:hover:bg-transparent disabled:hover:text-slate-500"
+            aria-label={t('bills.action.delete')}
+            title={row.status === 'draft' ? t('bills.action.delete') : 'Only draft bills can be deleted'}
+          >
+            <Trash2 size={15} />
+          </button>
         </div>
       )
     }
@@ -317,6 +341,32 @@ export default function BillsTable({
           setRestoreBillId(null)
         }}
         onCancel={() => setRestoreBillId(null)}
+      />
+      <ConfirmDialog
+        isOpen={archiveBillId != null}
+        title={t('bills.archive.title')}
+        description={t('bills.archive.description')}
+        confirmLabel={t('bills.archive.confirm')}
+        cancelLabel={t('bills.archive.cancel')}
+        confirmVariant="danger"
+        onConfirm={() => {
+          if (archiveBillId) onAction(archiveBillId, 'archive')
+          setArchiveBillId(null)
+        }}
+        onCancel={() => setArchiveBillId(null)}
+      />
+      <ConfirmDialog
+        isOpen={deleteBillId != null}
+        title={t('bills.delete.title')}
+        description={t('bills.delete.description')}
+        confirmLabel={t('bills.delete.confirm')}
+        cancelLabel={t('bills.delete.cancel')}
+        confirmVariant="danger"
+        onConfirm={() => {
+          if (deleteBillId) onAction(deleteBillId, 'delete')
+          setDeleteBillId(null)
+        }}
+        onCancel={() => setDeleteBillId(null)}
       />
     </div>
   )

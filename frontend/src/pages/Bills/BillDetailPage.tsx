@@ -100,6 +100,7 @@ export default function BillDetailPage() {
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false)
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false)
   const [isSubmitConfirmOpen, setIsSubmitConfirmOpen] = useState(false)
+  const [isRestoreConfirmOpen, setIsRestoreConfirmOpen] = useState(false)
   const [rejectComment, setRejectComment] = useState('')
   const [isPayModalOpen, setIsPayModalOpen] = useState(false)
 
@@ -162,12 +163,7 @@ export default function BillDetailPage() {
       </>
     ),
     archived: (
-      <Button
-        onClick={async () => {
-          const ok = await transitionBill(bill.id, 'restore')
-          if (ok) navigate(billsListPath('drafts'), { replace: true })
-        }}
-      >
+      <Button onClick={() => setIsRestoreConfirmOpen(true)}>
         {t('bills.action.restore')}
       </Button>
     ),
@@ -491,6 +487,22 @@ export default function BillDetailPage() {
           void onSubmitForApproval()
         }}
         onCancel={() => setIsSubmitConfirmOpen(false)}
+      />
+      <ConfirmDialog
+        isOpen={isRestoreConfirmOpen}
+        title={t('bills.restore.confirmTitle')}
+        description={t('bills.restore.confirmBody')}
+        confirmLabel={t('bills.restore.confirmCta')}
+        cancelLabel={t('bills.restore.cancelCta')}
+        confirmVariant="primary"
+        onConfirm={() => {
+          setIsRestoreConfirmOpen(false)
+          void (async () => {
+            const ok = await transitionBill(bill.id, 'restore')
+            if (ok) navigate(billsListPath('drafts'), { replace: true })
+          })()
+        }}
+        onCancel={() => setIsRestoreConfirmOpen(false)}
       />
     </div>
   )

@@ -266,9 +266,11 @@ export const translations: Record<Locale, TranslationDict> = {
     'bills.submit.confirm.submitCta': 'Submit for approval',
     'bills.submit.confirm.resubmitCta': 'Resubmit for approval',
     'bills.submit.confirm.cancel': 'Cancel',
-    'bills.form.error.required': 'Vendor, invoice number, due date and amount are required.',
+    'bills.form.error.required':
+      'Vendor, invoice number, due date and amount are required.',
     'bills.form.error.authRequired': 'Sign in to create a bill.',
-    'bills.form.error.saveFailed': 'Could not save bill. Check your connection.',
+    'bills.form.error.saveFailed':
+      'Could not save bill. Check your connection.',
     'bills.form.loading': 'Loading bill...',
     'bills.form.submit.saveDraft': 'Save Draft',
     'bills.form.submit.resubmit': 'Resubmit for Approval',
@@ -705,9 +707,11 @@ export const translations: Record<Locale, TranslationDict> = {
     'bills.submit.confirm.submitCta': 'Enviar para aprobación',
     'bills.submit.confirm.resubmitCta': 'Reenviar para aprobación',
     'bills.submit.confirm.cancel': 'Cancelar',
-    'bills.form.error.required': 'Proveedor, número de factura, vencimiento e importe son obligatorios.',
+    'bills.form.error.required':
+      'Proveedor, número de factura, vencimiento e importe son obligatorios.',
     'bills.form.error.authRequired': 'Inicia sesión para crear una factura.',
-    'bills.form.error.saveFailed': 'No se pudo guardar la factura. Revisa tu conexión.',
+    'bills.form.error.saveFailed':
+      'No se pudo guardar la factura. Revisa tu conexión.',
     'bills.form.loading': 'Cargando factura...',
     'bills.form.submit.saveDraft': 'Guardar borrador',
     'bills.form.submit.resubmit': 'Reenviar para aprobación',

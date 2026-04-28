@@ -114,6 +114,41 @@ export default function BillsPage() {
     setFilters((prev) => ({ ...prev, [key]: value }))
   }
 
+  const handleBillAction = async (
+    billId: string,
+    action: 'submit' | 'approve' | 'reject' | 'pay' | 'archive' | 'restore' | 'delete',
+  ) => {
+    if (action !== 'delete') {
+      void transitionBill(billId, action)
+      return
+    }
+    if (!authToken) return
+    const response = await fetch(`${API_BASE_URL}/bills/${billId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        'X-Entity-Id': activeWorkspaceId,
+      },
+    })
+    if (response.status === 401) {
+      logout()
+      return
+    }
+    if (response.ok) {
+      await queryClient.invalidateQueries({ queryKey: ['workspace', activeWorkspaceId] })
+      showSnack('Bill deleted successfully.', 'success')
+      return
+    }
+    let message = 'Could not delete bill. Try again.'
+    try {
+      const data = (await response.json()) as { message?: string }
+      if (data.message) message = data.message
+    } catch {
+      // Keep fallback message.
+    }
+    showSnack(message, 'error')
+  }
+
   const runBulkStatusAction = async (billIds: string[], action: 'approve' | 'pay') => {
     if (!authToken || billIds.length === 0) return
     const requests = billIds.map((billId) =>
@@ -179,7 +214,7 @@ export default function BillsPage() {
           <BillsTable
             bills={filtered}
             activeTab={activeTab}
-            onAction={(billId, action) => void transitionBill(billId, action)}
+            onAction={handleBillAction}
             onView={(billId) => navigate(`/bills/${billId}`, { state: { billsTab: activeTab } })}
             onBulkAction={runBulkStatusAction}
           />

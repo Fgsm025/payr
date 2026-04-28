@@ -379,7 +379,12 @@ export class BillsService {
     if (bill.status !== 'draft') {
       throw new BadRequestException('Only draft bills can be deleted');
     }
-    await this.prisma.bill.delete({ where: { id } });
+    await this.prisma.$transaction([
+      this.prisma.billLineItem.deleteMany({ where: { billId: id } }),
+      this.prisma.billStatusHistory.deleteMany({ where: { billId: id } }),
+      this.prisma.payment.deleteMany({ where: { billId: id } }),
+      this.prisma.bill.delete({ where: { id } }),
+    ]);
   }
 
   async cancelPayment(entityId: string, id: string, actorEmail?: string) {
